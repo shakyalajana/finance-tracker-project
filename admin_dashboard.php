@@ -194,8 +194,9 @@ $latestUsers = $conn->query("SELECT name, email FROM users ORDER BY user_id DESC
     </div>
 
     <div class="section buttons">
-        <a href="view_all_users.php">👥 View Users</a>
-        <a href="view_all_transactions.php">📄 View Transactions</a>
+        <a href="view_users.php">👥 View Users</a>
+        <a href="admin_transactions.php">📄 View Transactions</a>
+        <a href="manage_category.php">📄 Manage Categories</a>
         <a href="logout.php" class="logout-btn">Logout</a>
     </div>
 

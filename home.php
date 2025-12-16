@@ -19,8 +19,8 @@
             background: url('Images/main.jpg') no-repeat center center/cover;
             position: relative;
             display: flex;
-            justify-content: center;
-            align-items: center;
+            /*justify-content: center;
+            align-items: center;*/
         }
 
         /* Dark overlay for readability */
@@ -89,19 +89,26 @@
             z-index:2;
             background: rgba(255,255,255,0.1);
             backdrop-filter: blur(10px);
-            padding: 60px 40px;
+            padding: 200px 40px;
             border-radius: 20px;
             text-align: center;
             color: #fff;
             max-width: 450px;
             box-shadow: 0 8px 25px rgba(0,0,0,0.5);
-            animation: fadeIn 1s ease-in-out;
+            animation: slideIn 1s ease-in-out;
         }
 
-        @keyframes fadeIn {
-            from {opacity:0; transform: translateY(-20px);}
-            to {opacity:1; transform: translateY(0);}
+        @keyframes slideIn {
+            0% {
+                transform: translateX(-80px);
+                opacity: 0;
+            }
+            100% {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
+
 
         h1 {
             font-size: 32px;
@@ -153,11 +160,11 @@
 </head>
 <body>
 
-    <!-- Animated shapes -->
+    <!-- Animated shapes 
     <div class="shape shape1"></div>
     <div class="shape shape2"></div>
     <div class="shape shape3"></div>
-    <div class="shape shape4"></div>
+    <div class="shape shape4"></div>--->
 
     <div class="home-container">
         <h1>Personal Finance Tracker</h1>

@@ -10,21 +10,20 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 
 // Total Income
-$incomeQuery = $conn->prepare("SELECT SUM(amount) AS total_income FROM income WHERE user_id = ?");
-$incomeQuery->bind_param("i", $user_id);
-$incomeQuery->execute();
-$income = $incomeQuery->get_result()->fetch_assoc();
-$total_income = $income['total_income'] ?? 0;
+$sql_income = "SELECT SUM(amount) AS total_income FROM income WHERE user_id='$user_id'";
+$result_income = mysqli_query($conn, $sql_income);
+$row_income = mysqli_fetch_assoc($result_income);
+$total_income = $row_income['total_income'] ?? 0;
 
 // Total Expenses
-$expenseQuery = $conn->prepare("SELECT SUM(amount) AS total_expense FROM expenses WHERE user_id = ?");
-$expenseQuery->bind_param("i", $user_id);
-$expenseQuery->execute();
-$expense = $expenseQuery->get_result()->fetch_assoc();
-$total_expense = $expense['total_expense'] ?? 0;
+$sql_expense = "SELECT SUM(amount) AS total_expense FROM expenses WHERE user_id='$user_id'";
+$result_expense = mysqli_query($conn, $sql_expense);
+$row_expense = mysqli_fetch_assoc($result_expense);
+$total_expense = $row_expense['total_expense'] ?? 0;
 
-// Balance
-$balance = $total_income - $total_expense;
+
+// savings
+$savings = $total_income - $total_expense;
 ?>
 <!DOCTYPE html>
 <html>
@@ -154,7 +153,7 @@ $balance = $total_income - $total_expense;
 
         <div class="card">
             <h3>Balance</h3>
-            <p>Rs. <?php echo number_format($balance, 2); ?></p>
+            <p>Rs. <?php echo number_format($savings, 2); ?></p>
         </div>
 
     </div>
