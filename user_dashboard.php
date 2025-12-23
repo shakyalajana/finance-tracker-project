@@ -1,34 +1,59 @@
 <?php
 session_start();
 require 'db.php';
+include "header.php";
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
-    exit;
+    exit();
 }
-
+$month = date('m');
+$year  = date('Y');
 $user_id = $_SESSION['user_id'];
 
-// Total Income
-$sql_income = "SELECT SUM(amount) AS total_income FROM income WHERE user_id='$user_id'";
-$result_income = mysqli_query($conn, $sql_income);
-$row_income = mysqli_fetch_assoc($result_income);
-$total_income = $row_income['total_income'] ?? 0;
+$income_q = mysqli_query($conn,
+    "SELECT SUM(amount) AS total_income
+     FROM income
+     WHERE user_id='$user_id'
+     AND MONTH(date)=MONTH(CURRENT_DATE())
+     AND YEAR(date)=YEAR(CURRENT_DATE())");
 
-// Total Expenses
-$sql_expense = "SELECT SUM(amount) AS total_expense FROM expenses WHERE user_id='$user_id'";
-$result_expense = mysqli_query($conn, $sql_expense);
-$row_expense = mysqli_fetch_assoc($result_expense);
-$total_expense = $row_expense['total_expense'] ?? 0;
+$income_row = mysqli_fetch_assoc($income_q);
+$total_income = $income_row['total_income'] ?? 0;
 
+$expense_q = mysqli_query($conn,
+    "SELECT SUM(amount) AS total_expense
+     FROM expenses
+     WHERE user_id='$user_id'
+     AND MONTH(date)=MONTH(CURRENT_DATE())
+     AND YEAR(date)=YEAR(CURRENT_DATE())");
+
+$expense_row = mysqli_fetch_assoc($expense_q);
+$total_expense = $expense_row['total_expense'] ?? 0;
 
 // savings
 $savings = $total_income - $total_expense;
+
+$limit_q = mysqli_query($conn,
+    "SELECT limit_amount 
+     FROM expense_limits
+     WHERE user_id='$user_id'
+     AND month='$month'
+     AND year='$year'");
+
+$limit = 0;
+if (mysqli_num_rows($limit_q) > 0) {
+    $limit = mysqli_fetch_assoc($limit_q)['limit_amount'];
+}
 ?>
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         body {
             margin: 0;
@@ -116,59 +141,64 @@ $savings = $total_income - $total_expense;
         .buttons a:hover {
             background: #0f5ccc;
         }
-
-        .logout-btn {
-            background: red !important;
-        }
-
-        .logout-btn:hover {
-            background: #c70000 !important;
+        
+        .limit {
+            margin-top: 5px;
+            border-radius:8px;
+            background:#ffdddd;
+            padding:3px;
+            border-left:5px solid red;
         }
     </style>
 </head>
-
 <body>
+        <div class="container">
 
-<div class="navbar">
-    💼 Personal Finance Tracker
-</div>
+        <div class="welcome">
+            Welcome, <?php echo $_SESSION['name']; ?> <i class="fa-regular fa-face-laugh-beam" style="color: #1887dbff;"></i>
+        </div>
+        <?php $current_month = date('F Y'); ?>
+        <h2 style="color: #1a73e8; margin-bottom: 15px; border-radius: 10px; background: white; padding: 25px;">
+            Dashboard — <?php echo $current_month; ?></h2>
 
-<div class="container">
+        <div class="stats">
+            <div class="card">
+                <h3>Total Income</h3>
+                <p>Rs. <?php echo number_format($total_income, 2); ?></p>
+            </div>
 
-    <div class="welcome">
-        Welcome, <?php echo $_SESSION['name']; ?> 👋
+            <div class="card">
+                <h3>Total Expenses</h3>
+                <p>Rs. <?php echo number_format($total_expense, 2); ?></p>
+            </div>
+
+            <div class="card">
+                <h3>Balance</h3>
+                <p>Rs. <?php echo number_format($savings, 2); ?></p>
+            </div>
+
+        </div>
+
+        <div class="actions">
+            <h3>Quick Actions</h3>
+            <div class="buttons">
+                <a href="add_income.php"><i class="fa-solid fa-plus"></i> Add Income</a>
+                <a href="add_expense.php"><i class="fa-solid fa-minus"></i> Add Expense</a>
+                <a href="view_transactions.php"><i class="fa-regular fa-file"></i> View Transactions</a>
+                <a href="expense_limit.php"><i class="fa-solid fa-wallet"></i> Set Expense Limit</a>            
+            </div>
+        </div>
+        <?php if ($limit > 0 && $total_expense > $limit) { ?>
+    <div class="limit">
+        <p>⚠ Monthly expense limit exceeded!</p>
+        <br>
+        Limit: Rs. <?php echo $limit; ?> |
+        Spent: Rs. <?php echo $total_expense; ?>
     </div>
+<?php } ?>
 
-    <div class="stats">
-
-        <div class="card">
-            <h3>Total Income</h3>
-            <p>Rs. <?php echo number_format($total_income, 2); ?></p>
-        </div>
-
-        <div class="card">
-            <h3>Total Expenses</h3>
-            <p>Rs. <?php echo number_format($total_expense, 2); ?></p>
-        </div>
-
-        <div class="card">
-            <h3>Balance</h3>
-            <p>Rs. <?php echo number_format($savings, 2); ?></p>
-        </div>
 
     </div>
-
-    <div class="actions">
-        <h3>Quick Actions</h3>
-        <div class="buttons">
-            <a href="add_income.php">➕ Add Income</a>
-            <a href="add_expense.php">➖ Add Expense</a>
-            <a href="view_transactions.php">📄 View Transactions</a>
-            <a href="logout.php" class="logout-btn">Logout</a>
-        </div>
-    </div>
-
-</div>
-
+    <?php include "footer.php";?>
 </body>
 </html>

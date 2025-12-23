@@ -1,7 +1,7 @@
 <?php
 $host = "localhost";
-$user = "root"; // default
-$pass = ""; // default
+$user = "root"; 
+$pass = ""; 
 $db = "finance_tracker";
 
 $conn = new mysqli($host, $user, $pass, $db);

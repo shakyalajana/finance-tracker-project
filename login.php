@@ -24,6 +24,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $_SESSION['user_id'] = $row['user_id'];
                 $_SESSION['role'] = $row['role'];
                 $_SESSION['name'] = $row['name'];
+                $_SESSION['username'] = $row['name'];
 
                 // redirect based on role
                 if ($row['role'] == "admin") {
@@ -42,8 +43,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 }
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
 
     <style>

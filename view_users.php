@@ -65,10 +65,7 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] != 'admin') {
 <body>
 
     <a href="admin_dashboard.php" style="text-decoration:none; padding:8px 12px; background:#343a40; color:white; border-radius:4px;">&larr; Back to Dashboard</a>
-
-
     <h2>Registered Users</h2>
-
     <table>
         <tr>
             <th>ID</th>

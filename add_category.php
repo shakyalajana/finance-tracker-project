@@ -1,12 +1,11 @@
 <?php
-include '../db.php'; // database connection
+include 'db.php'; // database connection
 session_start();
 
 if ($_SESSION['role'] != 'admin') {
     header("Location: login.php");
     exit();
 }
-
 
 if (isset($_POST['add_category'])) {
     $name = $_POST['name'];

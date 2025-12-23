@@ -1,8 +1,6 @@
 <?php
 session_start();
 require 'db.php';
-
-// Access control
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     header("Location: login.php");
     exit;
@@ -12,23 +10,26 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
 $userCount = $conn->query("SELECT COUNT(*) AS total_users FROM users")->fetch_assoc()['total_users'];
 
 // Total Income (all users)
-$incomeQuery = $conn->query("SELECT SUM(amount) AS total_income FROM income");
+$incomeQuery = $conn->query("SELECT SUM(amount) AS total_income FROM income WHERE MONTH(date)=MONTH(CURRENT_DATE())
+     AND YEAR(date)=YEAR(CURRENT_DATE())");
 $total_income = $incomeQuery->fetch_assoc()['total_income'] ?? 0;
 
 // Total Expenses (all users)
-$expenseQuery = $conn->query("SELECT SUM(amount) AS total_expense FROM expenses");
+$expenseQuery = $conn->query("SELECT SUM(amount) AS total_expense FROM expenses WHERE MONTH(date)=MONTH(CURRENT_DATE())
+     AND YEAR(date)=YEAR(CURRENT_DATE())");
 $total_expense = $expenseQuery->fetch_assoc()['total_expense'] ?? 0;
 
 // Balance
 $balance = $total_income - $total_expense;
-
-// Latest 5 users
-$latestUsers = $conn->query("SELECT name, email FROM users ORDER BY user_id DESC LIMIT 5");
 ?>
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         body {
             margin: 0;
@@ -90,14 +91,6 @@ $latestUsers = $conn->query("SELECT name, email FROM users ORDER BY user_id DESC
             color: #0c4aad;
         }
 
-        .section {
-            background: white;
-            padding: 20px;
-            border-radius: 14px;
-            box-shadow: 0 6px 18px rgba(0,0,0,0.08);
-            margin-top: 20px;
-        }
-
         table {
             width: 100%;
             border-collapse: collapse;
@@ -148,7 +141,7 @@ $latestUsers = $conn->query("SELECT name, email FROM users ORDER BY user_id DESC
 
 <div class="container">
 
-    <div class="welcome">Welcome, Admin 👑</div>
+    <div class="welcome">Welcome, Admin <i class="fa-solid fa-user-tie" style="color: #388dceff;"></i></div>
 
     <div class="stats">
 
@@ -174,30 +167,11 @@ $latestUsers = $conn->query("SELECT name, email FROM users ORDER BY user_id DESC
 
     </div>
 
-    <div class="section">
-        <h3>Latest Registered Users</h3>
-
-        <table>
-            <tr>
-                <th>Name</th>
-                <th>Email</th>
-            </tr>
-
-            <?php while ($u = $latestUsers->fetch_assoc()) { ?>
-                <tr>
-                    <td><?php echo $u['name']; ?></td>
-                    <td><?php echo $u['email']; ?></td>
-                </tr>
-            <?php } ?>
-
-        </table>
-    </div>
-
     <div class="section buttons">
-        <a href="view_users.php">👥 View Users</a>
-        <a href="admin_transactions.php">📄 View Transactions</a>
-        <a href="manage_category.php">📄 Manage Categories</a>
-        <a href="logout.php" class="logout-btn">Logout</a>
+        <a href="view_users.php"><i class="fa-solid fa-users"></i> View Users</a>
+        <a href="admin_transactions.php"><i class="fa-regular fa-file"></i> View Transactions</a>
+        <a href="manage_category.php"><i class="fa-solid fa-list"></i> Manage Categories</a>
+        <a href="logout.php" class="logout-btn"><i class="fa-solid fa-right-from-bracket" style="color: #ffffffff;"></i> Logout</a>
     </div>
 
 </div>
