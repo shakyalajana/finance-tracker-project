@@ -190,14 +190,12 @@ if (mysqli_num_rows($limit_q) > 0) {
         </div>
         <?php if ($limit > 0 && $total_expense > $limit) { ?>
     <div class="limit">
-        <p>⚠ Monthly expense limit exceeded!</p>
+        <p><i class="fa-solid fa-triangle-exclamation" style="color: #d21e1e;"></i> Monthly expense limit exceeded!</p>
         <br>
         Limit: Rs. <?php echo $limit; ?> |
         Spent: Rs. <?php echo $total_expense; ?>
     </div>
-<?php } ?>
-
-
+    <?php } ?>
     </div>
     <?php include "footer.php";?>
 </body>
