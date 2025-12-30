@@ -11,22 +11,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (empty($email) || empty($password)) {
         $error = "All fields are required!";
     } else {
+
         $sql = "SELECT * FROM users WHERE email='$email'";
         $result = mysqli_query($conn, $sql);
 
         if (mysqli_num_rows($result) == 1) {
             $row = mysqli_fetch_assoc($result);
-
-            // verify password
             if (password_verify($password, $row['password'])) {
-
-                // store user info in session
                 $_SESSION['user_id'] = $row['user_id'];
                 $_SESSION['role'] = $row['role'];
                 $_SESSION['name'] = $row['name'];
                 $_SESSION['username'] = $row['name'];
-
-                // redirect based on role
+                mysqli_query($conn, "UPDATE users SET last_login = NOW() WHERE user_id = '{$row['user_id']}'");
                 if ($row['role'] == "admin") {
                     header("Location: admin_dashboard.php");
                 } else {
@@ -42,6 +38,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>

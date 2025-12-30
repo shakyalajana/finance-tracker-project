@@ -6,21 +6,21 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     exit;
 }
 
-// Total Users
-$userCount = $conn->query("SELECT COUNT(*) AS total_users FROM users")->fetch_assoc()['total_users'];
+$userCount = $conn->query("SELECT COUNT(*) AS total_users FROM users WHERE role = 'user'")->fetch_assoc()['total_users'];
 
-// Total Income (all users)
-$incomeQuery = $conn->query("SELECT SUM(amount) AS total_income FROM income WHERE MONTH(date)=MONTH(CURRENT_DATE())
-     AND YEAR(date)=YEAR(CURRENT_DATE())");
-$total_income = $incomeQuery->fetch_assoc()['total_income'] ?? 0;
+$activeUsers = $conn->query("
+    SELECT COUNT(DISTINCT user_id) AS total
+    FROM (
+        SELECT user_id FROM income
+        WHERE MONTH(date)=MONTH(CURRENT_DATE()) AND YEAR(date)=YEAR(CURRENT_DATE())
+        UNION
+        SELECT user_id FROM expenses
+        WHERE MONTH(date)=MONTH(CURRENT_DATE()) AND YEAR(date)=YEAR(CURRENT_DATE())
+    ) t
+")->fetch_assoc()['total'] ?? 0;
 
-// Total Expenses (all users)
-$expenseQuery = $conn->query("SELECT SUM(amount) AS total_expense FROM expenses WHERE MONTH(date)=MONTH(CURRENT_DATE())
-     AND YEAR(date)=YEAR(CURRENT_DATE())");
-$total_expense = $expenseQuery->fetch_assoc()['total_expense'] ?? 0;
-
-// Balance
-$balance = $total_income - $total_expense;
+$incomeCount = $conn->query("SELECT COUNT(*) AS total FROM income")->fetch_assoc()['total'];
+$expenseCount = $conn->query("SELECT COUNT(*) AS total FROM expenses")->fetch_assoc()['total'];
 ?>
 
 <!DOCTYPE html>
@@ -145,31 +145,30 @@ $balance = $total_income - $total_expense;
 
     <div class="stats">
 
-        <div class="card">
-            <h3>Total Users</h3>
-            <p><?php echo $userCount; ?></p>
-        </div>
-
-        <div class="card">
-            <h3>Total Income</h3>
-            <p>Rs. <?php echo number_format($total_income, 2); ?></p>
-        </div>
-
-        <div class="card">
-            <h3>Total Expenses</h3>
-            <p>Rs. <?php echo number_format($total_expense, 2); ?></p>
-        </div>
-
-        <div class="card">
-            <h3>Balance</h3>
-            <p>Rs. <?php echo number_format($balance, 2); ?></p>
-        </div>
-
+    <div class="card">
+        <h3>Total Users</h3>
+        <p><?php echo $userCount; ?></p>
     </div>
+
+    <div class="card">
+        <h3>Active Users (This Month)</h3>
+        <p><?php echo $activeUsers; ?></p>
+    </div>
+
+    <div class="card">
+        <h3>Income Records</h3>
+        <p><?php echo $incomeCount; ?></p>
+    </div>
+
+    <div class="card">
+        <h3>Expense Records</h3>
+        <p><?php echo $expenseCount; ?></p>
+    </div>
+
+</div>
 
     <div class="section buttons">
         <a href="view_users.php"><i class="fa-solid fa-users"></i> View Users</a>
-        <a href="admin_transactions.php"><i class="fa-regular fa-file"></i> View Transactions</a>
         <a href="manage_category.php"><i class="fa-solid fa-list"></i> Manage Categories</a>
         <a href="logout.php" class="logout-btn"><i class="fa-solid fa-right-from-bracket" style="color: #ffffffff;"></i> Logout</a>
     </div>

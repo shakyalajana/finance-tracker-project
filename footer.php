@@ -11,5 +11,5 @@
 
 <footer class="main-footer">
     <p>Personal Finance Tracker | BCA Project</p>
-    <p>2025</p>
+    <p><?php echo date('Y'); ?></p>
 </footer>

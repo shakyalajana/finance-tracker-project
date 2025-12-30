@@ -19,13 +19,13 @@ if (isset($_GET['month']) && $_GET['month'] != '') {
 }
 
 $income_data = mysqli_query($conn,
-    "SELECT amount, description, date
+    "SELECT id AS income_id, amount, description, date
      FROM income
      WHERE user_id='$user_id' AND $condition
      ORDER BY date DESC");
 
 $expense_data = mysqli_query($conn,
-    "SELECT amount, description, date
+    "SELECT id AS expense_id, amount, description, date
      FROM expenses
      WHERE user_id='$user_id' AND $condition
      ORDER BY date DESC");
@@ -112,19 +112,24 @@ $expense_data = mysqli_query($conn,
             <th>Date</th>
             <th>Source</th>
             <th>Amount</th>
+            <th>Action</th>
         </tr>
 
         <?php
         if (mysqli_num_rows($income_data) > 0) {
             while ($row = mysqli_fetch_assoc($income_data)) {
-                echo "<tr>
-                        <td>{$row['date']}</td>
-                        <td>{$row['description']}</td>
-                        <td>Rs. {$row['amount']}</td>
-                    </tr>";
+                echo "<tr>";
+                echo "<td>{$row['date']}</td>";
+                echo "<td>{$row['description']}</td>";
+                echo "<td>Rs. {$row['amount']}</td>";
+                echo "<td><a href='edit_transaction.php?type=income&id={$row['income_id']}'>Edit</a>
+                        <a href='delete_transaction.php?type=income&id={$row['income_id']}'
+                        onclick='return confirm(\"Are you sure?\")'>Delete</a>
+                        </td>";
+                echo "</tr>";
             }
         } else {
-            echo "<tr><td colspan='3'>No income records</td></tr>";
+            echo "<tr><td colspan='4'>No income records</td></tr>";
         }
         ?>
     </table>
@@ -136,19 +141,24 @@ $expense_data = mysqli_query($conn,
             <th>Date</th>
             <th>Category</th>
             <th>Amount</th>
+            <th>Action</th>
         </tr>
 
         <?php
         if (mysqli_num_rows($expense_data) > 0) {
             while ($row = mysqli_fetch_assoc($expense_data)) {
-                echo "<tr>
-                        <td>{$row['date']}</td>
-                        <td>{$row['description']}</td>
-                        <td>Rs. {$row['amount']}</td>
-                    </tr>";
+                echo "<tr>";
+                echo "<td>{$row['date']}</td>";
+                echo "<td>{$row['description']}</td>";
+                echo "<td>Rs. {$row['amount']}</td>";
+                echo "<td><a href='edit_transaction.php?type=expense&id={$row['expense_id']}'>Edit</a>
+                        <a href='delete_transaction.php?type=expense&id={$row['expense_id']}'
+                        onclick='return confirm(\"Are you sure?\")'>Delete</a>
+                        </td>";
+                echo "</tr>";
             }
         } else {
-            echo "<tr><td colspan='3'>No expense records</td></tr>";
+            echo "<tr><td colspan='4'>No expense records</td></tr>";
         }
         ?>
     </table>
