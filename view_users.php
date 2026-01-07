@@ -7,15 +7,34 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     exit();
 }
 
+$statusFilter = '';
+
+if (isset($_GET['status'])) {
+
+    if ($_GET['status'] === 'active') {
+        $statusFilter = "
+            AND u.last_login >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+        ";
+    }
+
+    if ($_GET['status'] === 'passive') {
+        $statusFilter = "
+            AND u.last_login IS NOT NULL
+            AND u.last_login < DATE_SUB(NOW(), INTERVAL 30 DAY)
+        ";
+    }
+}
+
+
 $query = "
 SELECT  u.user_id, u.name, u.email, u.created_at, u.last_login, 
 COUNT(DISTINCT i.id) AS income_count, COUNT(DISTINCT e.id) AS expense_count
 FROM users u
 LEFT JOIN income i ON u.user_id = i.user_id
 LEFT JOIN expenses e ON u.user_id = e.user_id
-WHERE u.role = 'user'
+WHERE u.role = 'user' $statusFilter
 GROUP BY u.user_id
-ORDER BY u.created_at DESC
+ORDER BY u.last_login DESC
 ";
 $users = mysqli_query($conn, $query);
 ?>
@@ -86,7 +105,7 @@ $users = mysqli_query($conn, $query);
             font-weight: bold;
         }
 
-        .inactive {
+        .passive {
             color: red;
             font-weight: bold;
         }
@@ -98,6 +117,11 @@ $users = mysqli_query($conn, $query);
     <a href="admin_dashboard.php" class="back">← Back to Dashboard</a>
 
     <h2>User Activity Overview</h2>
+        <?php if (isset($_GET['status'])): ?>
+    <p style="margin-bottom:15px; font-weight:600;">
+        Showing: <?php echo ucfirst($_GET['status']); ?> users
+    </p>
+<?php endif; ?>
 
     <table>
         <tr>
@@ -115,7 +139,7 @@ $users = mysqli_query($conn, $query);
             if ($lastLogin && strtotime($lastLogin) >= strtotime('-30 days')) {
                 $status = 'Active';
             } else {
-                $status = 'Inactive';
+                $status = 'passive';
             }
         ?>
         <tr>

@@ -7,23 +7,17 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
     exit();
 }
 
-/* 1️⃣ Validate category ID */
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
     die("Invalid category ID");
 }
 
 $category_id = (int) $_GET['id'];
 
-/* 2️⃣ Fetch existing category */
 $result = mysqli_query($conn, "SELECT * FROM categories WHERE category_id = $category_id");
-
 if (mysqli_num_rows($result) !== 1) {
     die("Category not found");
 }
-
 $category = mysqli_fetch_assoc($result);
-
-/* 3️⃣ Update category */
 if (isset($_POST['update_category'])) {
 
     $name = mysqli_real_escape_string($conn, $_POST['name']);

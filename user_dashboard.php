@@ -12,19 +12,12 @@ $user_id = $_SESSION['user_id'];
 $month = date('m');
 $year  = date('Y');
 
-$income_q = mysqli_query($conn,
-    "SELECT SUM(amount) AS total_income FROM income 
-     WHERE user_id='$user_id' 
-     AND MONTH(date)=MONTH(CURRENT_DATE()) 
-     AND YEAR(date)=YEAR(CURRENT_DATE())");
-$total_income = mysqli_fetch_assoc($income_q)['total_income'] ?? 0;
+// Monthly totals
+$total_income = mysqli_fetch_assoc(mysqli_query($conn,
+    "SELECT SUM(amount) AS total FROM income WHERE user_id='$user_id' AND MONTH(date)='$month' AND YEAR(date)='$year'"))['total'] ?? 0;
 
-$expense_q = mysqli_query($conn,
-    "SELECT SUM(amount) AS total_expense FROM expenses 
-     WHERE user_id='$user_id' 
-     AND MONTH(date)=MONTH(CURRENT_DATE()) 
-     AND YEAR(date)=YEAR(CURRENT_DATE())");
-$total_expense = mysqli_fetch_assoc($expense_q)['total_expense'] ?? 0;
+$total_expense = mysqli_fetch_assoc(mysqli_query($conn,
+    "SELECT SUM(amount) AS total FROM expenses WHERE user_id='$user_id' AND MONTH(date)='$month' AND YEAR(date)='$year'"))['total'] ?? 0;
 
 $savings = $total_income - $total_expense;
 
@@ -32,32 +25,32 @@ $all_income = mysqli_fetch_assoc(mysqli_query($conn, "SELECT SUM(amount) AS tota
 $all_expense = mysqli_fetch_assoc(mysqli_query($conn, "SELECT SUM(amount) AS total FROM expenses WHERE user_id='$user_id'"))['total'] ?? 0;
 $all_balance = $all_income - $all_expense;
 
-$limit_q = mysqli_query($conn, "SELECT limit_amount FROM expense_limits WHERE user_id='$user_id' AND month='$month' AND year='$year'");
-$limit = mysqli_num_rows($limit_q) > 0 ? mysqli_fetch_assoc($limit_q)['limit_amount'] : 0;
+$limit = mysqli_fetch_assoc(mysqli_query($conn, "SELECT limit_amount FROM expense_limits WHERE user_id='$user_id' AND month='$month' AND year='$year'"))['limit_amount'] ?? 0;
 
-$category_data = [];
-$category_labels = [];
+$category_labels = $category_data = [];
 $cat_q = mysqli_query($conn, "SELECT description, SUM(amount) AS total FROM expenses WHERE user_id='$user_id' AND MONTH(date)='$month' AND YEAR(date)='$year' GROUP BY description");
 while ($row = mysqli_fetch_assoc($cat_q)) {
     $category_labels[] = $row['description'];
     $category_data[] = $row['total'];
 }
 
+// Yearly income/expense data
 $yearly_income = $yearly_expense = [];
 for ($m = 1; $m <= 12; $m++) {
-    $y_income = mysqli_fetch_assoc(mysqli_query($conn, 
-    "SELECT SUM(amount) AS total FROM income WHERE user_id='$user_id' AND MONTH(date)='$m' AND YEAR(date)='$year'"))['total'] ?? 0;
-    $y_expense = mysqli_fetch_assoc(mysqli_query($conn, 
-    "SELECT SUM(amount) AS total FROM expenses WHERE user_id='$user_id' AND MONTH(date)='$m' AND YEAR(date)='$year'"))['total'] ?? 0;
-    $yearly_income[] = $y_income;
-    $yearly_expense[] = $y_expense;
+    $yearly_income[] = mysqli_fetch_assoc(mysqli_query($conn, "SELECT SUM(amount) AS total FROM income WHERE user_id='$user_id' AND MONTH(date)='$m' AND YEAR(date)='$year'"))['total'] ?? 0;
+    $yearly_expense[] = mysqli_fetch_assoc(mysqli_query($conn, "SELECT SUM(amount) AS total FROM expenses WHERE user_id='$user_id' AND MONTH(date)='$m' AND YEAR(date)='$year'"))['total'] ?? 0;
 }
 
+// Recent transactions
 $recent_q = mysqli_query($conn, "
-SELECT 'Income' AS type, amount, description, date FROM income WHERE user_id = '$user_id'
-UNION ALL SELECT 'Expense' AS type, amount, description, date FROM expenses WHERE user_id = '$user_id' ORDER BY date DESC LIMIT 5");
-
+    SELECT 'Income' AS type, amount, description, date FROM income WHERE user_id = '$user_id'
+    UNION ALL
+    SELECT 'Expense' AS type, amount, description, date FROM expenses WHERE user_id = '$user_id'
+    ORDER BY date DESC
+    LIMIT 5
+");
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -195,32 +188,29 @@ UNION ALL SELECT 'Expense' AS type, amount, description, date FROM expenses WHER
 
         <h2 class="section-title">This Month — <?php echo date('F Y'); ?></h2>
         <div class="stats">
-            <div class="card"><h3>Income</h3><p style="color:#2e7d32;">Rs. <?php echo number_format($total_income,2); ?></p></div>
-            <div class="card"><h3>Expenses</h3><p style="color:#c62828;">Rs. <?php echo number_format($total_expense,2); ?></p></div>
-            <div class="card"><h3>Balance</h3><p style="color:#1565c0;">Rs. <?php echo number_format($savings,2); ?></p></div>
+            <div class="card"><h3>Income</h3><p style="color:#2e7d32;">Rs. <?= number_format($total_income,2); ?></p></div>
+            <div class="card"><h3>Expenses</h3><p style="color:#c62828;">Rs. <?= number_format($total_expense,2); ?></p></div>
+            <div class="card"><h3>Balance</h3><p style="color:#1565c0;">Rs. <?= number_format($savings,2); ?></p></div>
         </div>
 
-        <?php if($limit>0 && $total_expense>$limit): ?>
-            <div class="limit"><i class="fa-solid fa-triangle-exclamation"></i> Monthly expense limit exceeded! 
-            <br>Limit: Rs. <?php echo $limit; ?> | Spent: Rs. <?php echo $total_expense; ?> </div>
-        <?php endif; ?>
-        
-        <div class="card" style="margin-bottom: 40px;">
-            <h3 style="text-align:center; margin-bottom:15px;">
-                This Month <i class="fa-solid fa-minus"></i> Income vs Expense
-            </h3>
-            <div style="max-width: 350px; margin: 0 auto;">
-                <canvas id="monthPieChart"></canvas>
-            </div>
-        </div>
+    <?php if($limit>0 && $total_expense>$limit): ?>
+        <div class="limit"><i class="fa-solid fa-triangle-exclamation"></i> Monthly expense limit exceeded! 
+        <br>Limit: Rs. <?= $limit; ?> | Spent: Rs. <?= $total_expense; ?></div>
+    <?php endif; ?>
 
-        <!-- OVERALL SUMMARY -->
-        <h2 class="section-title">Overall Summary</h2>
-        <div class="stats">
-            <div class="card"><h3>Total Income</h3><p>Rs. <?php echo number_format($all_income,2); ?></p></div>
-            <div class="card"><h3>Total Expenses</h3><p>Rs. <?php echo number_format($all_expense,2); ?></p></div>
-            <div class="card"><h3>Net Savings</h3><p>Rs. <?php echo number_format($all_balance,2); ?></p></div>
-        </div>
+    <!-- Pie Chart -->
+    <div class="chart" style="margin-bottom:40px;">
+        <h3 style="text-align:center; margin-bottom:15px;">This Month — Income vs Expense</h3>
+        <canvas id="monthPieChart" style="max-width:350px; margin:0 auto; display:block;"></canvas>
+    </div>
+
+    <!-- Overall Summary -->
+    <h2 class="section-title">Overall Summary</h2>
+    <div class="stats">
+        <div class="card"><h3>Total Income</h3><p>Rs. <?= number_format($all_income,2); ?></p></div>
+        <div class="card"><h3>Total Expenses</h3><p>Rs. <?= number_format($all_expense,2); ?></p></div>
+        <div class="card"><h3>Net Savings</h3><p>Rs. <?= number_format($all_balance,2); ?></p></div>
+    </div>
 
         <h2 class="section-title">Recent Transactions</h2>
         <div class="actions">
@@ -267,8 +257,7 @@ UNION ALL SELECT 'Expense' AS type, amount, description, date FROM expenses WHER
             </div>
         </div>
 
-
-        <!-- QUICK ACTIONS -->
+        <!-- Quick Actions -->
         <h2 class="section-title">Quick Actions</h2>
         <div class="actions">
             <div class="buttons">
@@ -279,39 +268,24 @@ UNION ALL SELECT 'Expense' AS type, amount, description, date FROM expenses WHER
                 <a href="view_reports.php"><i class="fa-solid fa-chart-line"></i> Reports</a>
             </div>
         </div>
-
-        <!-- CHARTS -->
     </div>
 
     <script>
-        const ctx = document.getElementById('monthPieChart');
-
-        new Chart(ctx, {
-            type: 'pie',
-            data: {
-                labels: ['Income', 'Expense'],
-                datasets: [{
-                    data: [
-                        <?php echo $total_income; ?>,
-                        <?php echo $total_expense; ?>
-                    ],
-                    backgroundColor: [
-                        '#2e7d32',
-                        '#c62828'
-                    ]
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
-                    }
-                }
-            }
-        });
-        </script>
-
+    new Chart(document.getElementById('monthPieChart'), {
+        type: 'pie',
+        data: {
+            labels: ['Income','Expense'],
+            datasets: [{
+                data: [<?= $total_income ?>, <?= $total_expense ?>],
+                backgroundColor: ['#2e7d32','#c62828']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
+    </script>
 
     <?php include "footer.php"; ?>
 </body>

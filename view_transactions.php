@@ -8,14 +8,30 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $user_id = $_SESSION['user_id'];
+$user_q = mysqli_query($conn, "
+    SELECT created_at 
+    FROM users 
+    WHERE user_id = $user_id
+");
 
-if (isset($_GET['month']) && $_GET['month'] != '') {
-    $month = $_GET['month'];
-    $year  = $_GET['year'];
-    $condition = "MONTH(date)='$month' AND YEAR(date)='$year'";
+$user_row = mysqli_fetch_assoc($user_q);
+$user_created_at = $user_row['created_at'];   
+$user_created_at = date('Y-m-d', strtotime($user_created_at));
+
+$today = date('Y-m-d');
+
+if (!empty($_GET['from_date']) && !empty($_GET['to_date'])) {
+    $from_date = $_GET['from_date'];
+    $to_date   = $_GET['to_date'];
+    if ($from_date < $user_created_at) {
+        $from_date = $user_created_at;
+    }
+    if ($to_date > $today) {
+        $to_date = $today;
+    }
+    $condition = "date BETWEEN '$from_date' AND '$to_date'";
 } else {
-    $condition = "MONTH(date)=MONTH(CURRENT_DATE()) 
-                  AND YEAR(date)=YEAR(CURRENT_DATE())";
+    $condition = " date >= '$user_created_at' AND MONTH(date)=MONTH(CURRENT_DATE()) AND YEAR(date)=YEAR(CURRENT_DATE())";
 }
 
 $income_data = mysqli_query($conn,
@@ -84,26 +100,25 @@ $expense_data = mysqli_query($conn,
     </div>
 
     <h2>Transactions</h2>
-    <form method="GET">
-        <select name="month">
-            <option value="">Current Month</option>
-            <?php
-            for ($m = 1; $m <= 12; $m++) {
-                echo "<option value='$m'>$m</option>";
-            }
-            ?>
-        </select>
+    
+            <form method="GET">
+    <label>From:</label>
+    <input type="date"
+       name="from_date"
+       min="<?php echo $user_created_at; ?>"
+       required>
 
-        <select name="year">
-            <?php
-            for ($y = date('Y'); $y >= 2022; $y--) {
-                echo "<option value='$y'>$y</option>";
-            }
-            ?>
-        </select>
 
-        <button type="submit">View</button>
-    </form>
+    <label>To:</label>
+    <input type="date"
+           name="to_date"
+           min="<?php echo $user_created_at; ?>"
+           max="<?php echo $today; ?>"
+           required>
+
+    <button type="submit">View</button>
+</form>
+
 
     <h3>Income Transactions</h3>
 
