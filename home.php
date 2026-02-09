@@ -4,177 +4,179 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Personal Finance Tracker</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        *{
-            margin:0;
-            padding:0;
-            box-sizing:border-box;
-            font-family: 'Poppins', Arial, sans-serif;
-        }
-
-        html, body {
-            height: 100%;
-            overflow: hidden;
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap');
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
         body {
-            background: url('Images/main.jpg') no-repeat center center/cover;
-            position: relative;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .hero {
+            min-height: 100vh;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.95), rgba(118, 75, 162, 0.95)),
+                        url('https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=1920&q=80') center/cover;
             display: flex;
-            /*justify-content: center;
-            align-items: center;*/
-        }
-
-        /* Dark overlay for readability */
-        body::before {
-            content: "";
-            position: absolute;
-            top:0; left:0;
-            width:100%; height:100%;
-            background: rgba(0,0,0,0.5);
-            z-index:1;
-        }
-
-        /* Animated shapes 
-        .shape {
-            position: absolute;
-            border-radius: 50%;
-            opacity: 0.6;
-            animation: float 10s infinite linear;
-        }
-
-        .shape1 {
-            width: 150px;
-            height: 150px;
-            background: #ff6b6b;
-            top: 10%;
-            left: 15%;
-            animation-duration: 12s;
-        }
-
-        .shape2 {
-            width: 100px;
-            height: 100px;
-            background: #1dd1a1;
-            top: 70%;
-            left: 10%;
-            animation-duration: 15s;
-        }
-
-        .shape3 {
-            width: 120px;
-            height: 120px;
-            background: #feca57;
-            top: 20%;
-            left: 75%;
-            animation-duration: 18s;
-        }
-
-        .shape4 {
-            width: 80px;
-            height: 80px;
-            background: #5f27cd;
-            top: 65%;
-            left: 80%;
-            animation-duration: 20s;
-        }
-
-        @keyframes float {
-            0% { transform: translateY(0px) rotate(0deg); }
-            50% { transform: translateY(-30px) rotate(180deg); }
-            100% { transform: translateY(0px) rotate(360deg); }
-        }*/
-
-        /* Main card */
-        .home-container {
-            position: relative;
-            z-index:2;
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
-            padding: 200px 40px;
-            border-radius: 20px;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             text-align: center;
-            color: #fff;
-            max-width: 450px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.5);
-            animation: slideIn 1s ease-in-out;
+            color: white;
+            padding: 20px;
         }
 
-        @keyframes slideIn {
-            0% {
-                transform: translateX(-80px);
-                opacity: 0;
-            }
-            100% {
-                transform: translateX(0);
-                opacity: 1;
-            }
+        .navbar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 24px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-
-        h1 {
-            font-size: 32px;
-            margin-bottom: 20px;
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 24px;
             font-weight: 700;
         }
 
-        p {
-            font-size: 16px;
-            margin-bottom: 40px;
-            color: #f0f0f0;
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .nav {
+            display: flex;
+            gap: 12px;
         }
 
         .btn {
-            display: inline-block;
-            margin: 10px;
-            padding: 14px 28px;
-            font-size: 16px;
-            font-weight: 600;
-            border-radius: 12px;
+            padding: 12px 28px;
+            border-radius: 8px;
             text-decoration: none;
-            transition: 0.3s;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .btn-login {
-            background: #00c6ff;
-            color: #fff;
+        .btn-outline {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
         }
 
-        .btn-login:hover {
-            background: #0072b1;
+        .btn-outline:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
         }
 
-        .btn-register {
-            background: #f0a500;
-            color: #fff;
+        .btn-solid {
+            background: white;
+            color: #667eea;
         }
 
-        .btn-register:hover {
-            background: #c17a00;
+        .btn-solid:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
         }
 
-        .btn:hover {
-            transform: translateY(-3px);
+        .content {
+            max-width: 700px;
         }
 
+        h1 {
+            font-size: 56px;
+            font-weight: 800;
+            margin-bottom: 24px;
+            line-height: 1.2;
+        }
+
+        p {
+            font-size: 20px;
+            margin-bottom: 40px;
+            opacity: 0.95;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+        }
+
+        .btn-large {
+            padding: 16px 40px;
+            font-size: 16px;
+            border-radius: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 36px;
+            }
+
+            p {
+                font-size: 16px;
+            }
+
+            .buttons {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .btn-large {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
+    <div class="hero">
+        <nav class="navbar">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-chart-line"></i>
+                </div>
+                <span>FinanceTracker</span>
+            </div>
+            <div class="nav">
+                <a href="login.php" class="btn btn-outline"><i class="fa-solid fa-right-to-bracket"></i>Login</a>
+                <a href="register.php" class="btn btn-solid"><i class="fa-solid fa-user-plus"></i>Sign Up</a>
+            </div>
+        </nav>
 
-    <!-- Animated shapes 
-    <div class="shape shape1"></div>
-    <div class="shape shape2"></div>
-    <div class="shape shape3"></div>
-    <div class="shape shape4"></div>--->
-
-    <div class="home-container">
-        <h1>Personal Finance Tracker</h1>
-        <p>Manage your income and expenses easily. Track your money, plan your budget, and achieve your financial goals!</p>
-
-        <a href="login.php" class="btn btn-login">Login</a>
-        <a href="register.php" class="btn btn-register">Register</a>
+        <div class="content">
+            <h1>Take Control of Your Finances</h1>
+            <p>Track income, manage expenses, and achieve your financial goals.</p>
+            
+            <div class="buttons">
+                <a href="register.php" class="btn btn-solid btn-large"><i class="fa-solid fa-rocket"></i>Get Started</a>
+                <a href="login.php" class="btn btn-outline btn-large">Sign In</a>
+            </div>
+        </div>
     </div>
-
 </body>
 </html>

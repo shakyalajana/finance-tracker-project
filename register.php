@@ -1,171 +1,308 @@
-<?php
-include "db.php";
-
-$success = "";
-$error = "";
-
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $name = mysqli_real_escape_string($conn, $_POST['name']);
-    $email = mysqli_real_escape_string($conn, $_POST['email']);
-    $password = mysqli_real_escape_string($conn, $_POST['password']);
-    $confirm = mysqli_real_escape_string($conn, $_POST['confirm']);
-
-    if (empty($name) || empty($email) || empty($password) || empty($confirm)) {
-        $error = "All fields are required!";
-    }
-    elseif ($password !== $confirm) {
-        $error = "Passwords do not match!";
-    }
-    else {
-        $check = "SELECT * FROM users WHERE email='$email'";
-        $result = mysqli_query($conn, $check);
-
-        if (mysqli_num_rows($result) > 0) {
-            $error = "Email already registered!";
-        } else {
-            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-
-            $sql = "INSERT INTO users (name, email, password) VALUES ('$name', '$email', '$hashed_password')";
-
-            if (mysqli_query($conn, $sql)) {
-                $success = "Registration successful!";
-            } else {
-                $error = "Error: " . mysqli_error($conn);
-            }
-        }
-    }
-}
-?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Registration</title>
+    <title>Create Account</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        *{
-            margin:0;
-            padding:0;
-            box-sizing:border-box;
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+        
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
         }
 
         body {
-            font-family: Arial;
-            background: linear-gradient(135deg, #6dd5ed, #2193b0);
+            font-family: 'Poppins', sans-serif;
             height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.75), rgba(118, 75, 162, 0.75)),
+                        url('https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=1920&q=80') center/cover;
+            display: flex;
+            padding: 20px;
         }
 
-        .form-container {
-            background: white;
-            padding: 30px;
-            width: 380px;
-            border-radius: 12px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-            animation: fadeIn 0.5s ease-in-out;
+        .container {
+            background: linear-gradient(135deg, #ffffff 0%, #f1f3f6 50%, #e5e7eb 100%);
+            padding: 40px;
+            max-width: 420px;
+            width: 100%;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 28px;
+            margin: 0 auto 16px;
         }
 
         h2 {
-            text-align: center;
-            margin-bottom: 15px;
-            color: #333;
+            color: #1f2937;
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        p {
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .err {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+            color: red;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .input-wrap {
+            position: relative;
+        }
+
+        .input-wrap i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
         }
 
         input {
             width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            font-size: 15px;
-            transition: 0.3s;
+            padding: 12px 12px 12px 44px;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 14px;
+            font-family: 'Poppins', sans-serif;
         }
 
         input:focus {
             outline: none;
-            border-color: #2193b0;
-            box-shadow: 0 0 5px rgba(33,147,176,0.4);
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
-        button {
+        .btn {
             width: 100%;
             padding: 12px;
-            margin-top: 8px;
-            background: #2193b0;
+            background: linear-gradient(135deg, #667eea, #764ba2);
             border: none;
             color: white;
-            font-size: 17px;
-            border-radius: 6px;
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: 8px;
             cursor: pointer;
-            transition: 0.3s;
+            font-family: 'Poppins', sans-serif;
         }
 
-        button:hover {
-            background: #17627a;
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
         }
 
-        .message {
-            text-align: center;
-            margin-bottom: 10px;
-            font-weight: bold;
-        }
-
-        .error {
-            color: #d8000c;
-        }
-
-        .success {
-            color: #4BB543;
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
         }
 
         .link {
             text-align: center;
-            margin-top: 12px;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #6b7280;
         }
 
         .link a {
-            color: #2193b0;
+            color: #667eea;
             text-decoration: none;
-            font-size: 14px;
+            font-weight: 600;
         }
 
         .link a:hover {
             text-decoration: underline;
         }
 
+        @media (max-width: 480px) {
+            .container { padding: 30px 24px; }
+        }
     </style>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 </head>
 <body>
+    <div class="container">
+        <div class="header">
+            <div class="logo"><i class="fa-solid fa-chart-line"></i></div>
+            <h2>Create Account</h2>
+            <p>Start managing your finances</p>
+        </div>
+        <div id="msgBox" style="display:none; padding:12px; border-radius:8px; margin-bottom:15px; font-size:14px;"></div>
+        <form id="register" method="post">
+            <div class="form-group">
+                <label>Full Name</label>
+                <div class="input-wrap">
+                    <i class="fa-solid fa-user"></i>
+                    <input type="text" name="name" id="name" placeholder="Enter your name" required>
+                </div>
+                <div class="err" id="nameErr"></div>
+            </div>
 
-<div class="form-container">
-    <h2>Create Account</h2>
+            <div class="form-group">
+                <label>Email</label>
+                <div class="input-wrap">
+                    <i class="fa-solid fa-envelope"></i>
+                    <input type="email" name="email" id="email" placeholder="Enter your email" required>
+                    </div>
+                <div class="err" id="emailErr"></div>
+            </div>
 
-    <?php if($error){ echo "<div class='message error'>$error</div>"; } ?>
-    <?php if($success){ echo "<div class='message success'>$success</div>"; } ?>
+            <div class="form-group">
+                <label>Password</label>
+                <div class="input-wrap">
+                    <i class="fa-solid fa-lock"></i>
+                    <input type="password" name="password" id="password" placeholder="Enter password" required>
+                    </div>
+                <div class="err" id="passErr"></div>
+            </div>
 
-    <form method="POST" action="">
-        <input type="text" name="name" placeholder="Full Name">
+            <div class="form-group">
+                <label>Confirm Password</label>
+                <div class="input-wrap">
+                    <i class="fa-solid fa-lock"></i>
+                    <input type="password" name="confirm" id="confirm" placeholder="Confirm password" required>
+                    </div>
+                <div class="err" id="conErr"></div>
+            </div>
 
-        <input type="email" name="email" placeholder="Email">
+            <button type="submit" class="btn" id="submitBtn">Create Account</button>
+        </form>
 
-        <input type="password" name="password" placeholder="Password">
-
-        <input type="password" name="confirm" placeholder="Confirm Password">
-
-        <button type="submit">Register</button>
-    </form>
-
-    <div class="link">
-        Already have an account? <a href="login.php">Login</a>
+        <div class="link">
+            Already have an account? <a href="login.php">Sign In</a>
+        </div>
     </div>
-</div>
 
+    <script>
+        $(document).ready(function() {
+            $('#register').submit(function(e) {
+                e.preventDefault();
+                $(".err").text("").hide();
+                let valid = true;
+                let name = $('#name').val().trim();
+                let email = $('#email').val().trim();
+                let password = $('#password').val();
+                let confirm = $('#confirm').val();
+                
+                // Client-side validation
+                if (name === "" || /\d/.test(name)) {
+                    $("#nameErr").text("Name must not be empty and contain any numbers.").show();
+                    valid = false;
+                }
+                
+                if(email === "" || !email.includes("@")) {
+                    $("#emailErr").text("Enter a valid email").show();
+                    valid = false;
+                }
+
+                let pw = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9]).{8,}$/;
+                if (!pw.test(password)) {
+                    $("#passErr").text("Password must be at least 8 characters with uppercase, lowercase, digit & special character.").show();
+                    valid = false;
+                }
+                
+                if (password !== confirm) {
+                    $("#conErr").text("Passwords do not match").show();
+                    valid = false;
+                }
+                if (valid) {
+                    $("#submitBtn").prop("disabled", true).text("Creating...");
+
+                    $.ajax({
+                        url: "register_ajax.php",
+                        type: "POST",
+                        data: {
+                            name: name,
+                            email: email,
+                            password: password
+                        },
+
+                        success: function(response) {
+                            $("#submitBtn").prop("disabled", false).text("Create Account");
+
+                            if (response.trim() === "success") {
+                                $("#msgBox")
+                                    .css({
+                                        "background": "#d1fae5",
+                                        "color": "#065f46",
+                                        "border": "1px solid #a7f3d0"
+                                    })
+                                    .text("Account created successfully! Redirecting to login...")
+                                    .fadeIn();
+
+                                $("#register")[0].reset();
+
+                                setTimeout(function(){
+                                    window.location.href = "login.php";
+                                }, 2000);
+
+                            } else {
+                                $("#msgBox")
+                                    .css({
+                                        "background": "#fee2e2",
+                                        "color": "#991b1b",
+                                        "border": "1px solid #fecaca"
+                                    })
+                                    .text(response)
+                                    .fadeIn();
+                            }
+                        },
+
+                        error: function() {
+                            $("#submitBtn").prop("disabled", false).text("Create Account");
+
+                            $("#msgBox")
+                                .css({
+                                    "background": "#fee2e2",
+                                    "color": "#991b1b",
+                                    "border": "1px solid #fecaca"
+                                })
+                                .text("Server error. Please try again.")
+                                .fadeIn();
+                        }
+                    });
+                }
+            });
+        });
+    </script>
 </body>
 </html>

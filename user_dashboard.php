@@ -1,7 +1,6 @@
 <?php
 session_start();
 require 'db.php';
-include "header.php";
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
@@ -10,281 +9,365 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 $month = date('m');
-$year  = date('Y');
+$year = date('Y');
 
-// Monthly totals
-$total_income = mysqli_fetch_assoc(mysqli_query($conn,
-    "SELECT SUM(amount) AS total FROM income WHERE user_id='$user_id' AND MONTH(date)='$month' AND YEAR(date)='$year'"))['total'] ?? 0;
+// Monthly totals using prepared statements
+$stmt = mysqli_prepare($conn, "SELECT SUM(amount) AS total FROM income WHERE user_id = ? AND MONTH(date) = ? AND YEAR(date) = ?");
+mysqli_stmt_bind_param($stmt, "iss", $user_id, $month, $year);
+mysqli_stmt_execute($stmt);
+$result = mysqli_stmt_get_result($stmt);
+$total_income = mysqli_fetch_assoc($result)['total'] ?? 0;
+mysqli_stmt_close($stmt);
 
-$total_expense = mysqli_fetch_assoc(mysqli_query($conn,
-    "SELECT SUM(amount) AS total FROM expenses WHERE user_id='$user_id' AND MONTH(date)='$month' AND YEAR(date)='$year'"))['total'] ?? 0;
+$stmt = mysqli_prepare($conn, "SELECT SUM(amount) AS total FROM expenses WHERE user_id = ? AND MONTH(date) = ? AND YEAR(date) = ?");
+mysqli_stmt_bind_param($stmt, "iss", $user_id, $month, $year);
+mysqli_stmt_execute($stmt);
+$result = mysqli_stmt_get_result($stmt);
+$total_expense = mysqli_fetch_assoc($result)['total'] ?? 0;
+mysqli_stmt_close($stmt);
 
 $savings = $total_income - $total_expense;
 
-$all_income = mysqli_fetch_assoc(mysqli_query($conn, "SELECT SUM(amount) AS total FROM income WHERE user_id='$user_id'"))['total'] ?? 0;
-$all_expense = mysqli_fetch_assoc(mysqli_query($conn, "SELECT SUM(amount) AS total FROM expenses WHERE user_id='$user_id'"))['total'] ?? 0;
+// All-time totals using prepared statements
+$stmt = mysqli_prepare($conn, "SELECT SUM(amount) AS total FROM income WHERE user_id = ?");
+mysqli_stmt_bind_param($stmt, "i", $user_id);
+mysqli_stmt_execute($stmt);
+$result = mysqli_stmt_get_result($stmt);
+$all_income = mysqli_fetch_assoc($result)['total'] ?? 0;
+mysqli_stmt_close($stmt);
+
+$stmt = mysqli_prepare($conn, "SELECT SUM(amount) AS total FROM expenses WHERE user_id = ?");
+mysqli_stmt_bind_param($stmt, "i", $user_id);
+mysqli_stmt_execute($stmt);
+$result = mysqli_stmt_get_result($stmt);
+$all_expense = mysqli_fetch_assoc($result)['total'] ?? 0;
+mysqli_stmt_close($stmt);
+
 $all_balance = $all_income - $all_expense;
 
-$limit = mysqli_fetch_assoc(mysqli_query($conn, "SELECT limit_amount FROM expense_limits WHERE user_id='$user_id' AND month='$month' AND year='$year'"))['limit_amount'] ?? 0;
+// Insight message
+$insightMessage = '';
+$insightIcon = '';
+$insightColor = '';
 
-$category_labels = $category_data = [];
-$cat_q = mysqli_query($conn, "SELECT description, SUM(amount) AS total FROM expenses WHERE user_id='$user_id' AND MONTH(date)='$month' AND YEAR(date)='$year' GROUP BY description");
-while ($row = mysqli_fetch_assoc($cat_q)) {
-    $category_labels[] = $row['description'];
-    $category_data[] = $row['total'];
+if ($savings > 0) {
+    $insightMessage = "Great job! You saved more than you spent this month.";
+    $insightIcon = "fa-arrow-trend-up";
+    $insightColor = "#e8f5e9";
+} elseif ($savings == 0) {
+    $insightMessage = "Your income and expenses are balanced this month.";
+    $insightIcon = "fa-scale-balanced";
+    $insightColor = "#e3f2fd";
+} else {
+    $insightMessage = "You spent more than you earned. Consider reviewing expenses.";
+    $insightIcon = "fa-arrow-trend-down";
+    $insightColor = "#fff3e0";
 }
 
-// Yearly income/expense data
-$yearly_income = $yearly_expense = [];
-for ($m = 1; $m <= 12; $m++) {
-    $yearly_income[] = mysqli_fetch_assoc(mysqli_query($conn, "SELECT SUM(amount) AS total FROM income WHERE user_id='$user_id' AND MONTH(date)='$m' AND YEAR(date)='$year'"))['total'] ?? 0;
-    $yearly_expense[] = mysqli_fetch_assoc(mysqli_query($conn, "SELECT SUM(amount) AS total FROM expenses WHERE user_id='$user_id' AND MONTH(date)='$m' AND YEAR(date)='$year'"))['total'] ?? 0;
-}
+// Get expense limit using prepared statement
+$stmt = mysqli_prepare($conn, "SELECT limit_amount FROM expense_limits WHERE user_id = ? AND month = ? AND year = ?");
+mysqli_stmt_bind_param($stmt, "iss", $user_id, $month, $year);
+mysqli_stmt_execute($stmt);
+$result = mysqli_stmt_get_result($stmt);
+$limit_row = mysqli_fetch_assoc($result);
+$limit = $limit_row['limit_amount'] ?? 0;
+mysqli_stmt_close($stmt);
 
-// Recent transactions
-$recent_q = mysqli_query($conn, "
-    SELECT 'Income' AS type, amount, description, date FROM income WHERE user_id = '$user_id'
+// Get expense breakdown by category for chart
+$stmt = mysqli_prepare($conn, "SELECT description, SUM(amount) AS total FROM expenses WHERE user_id = ? AND MONTH(date) = ? AND YEAR(date) = ? GROUP BY description ORDER BY total DESC LIMIT 6");
+mysqli_stmt_bind_param($stmt, "iss", $user_id, $month, $year);
+mysqli_stmt_execute($stmt);
+$expense_breakdown = mysqli_stmt_get_result($stmt);
+
+$expense_categories = [];
+$expense_amounts = [];
+$expense_colors = ['#e53935', '#d32f2f', '#c62828', '#b71c1c', '#f44336', '#ef5350'];
+
+while ($row = mysqli_fetch_assoc($expense_breakdown)) {
+    $expense_categories[] = $row['description'];
+    $expense_amounts[] = $row['total'];
+}
+mysqli_stmt_close($stmt);
+
+// Recent transactions using prepared statement
+$stmt = mysqli_prepare($conn, "
+    SELECT 'Income' AS type, amount, description, date FROM income WHERE user_id = ?
     UNION ALL
-    SELECT 'Expense' AS type, amount, description, date FROM expenses WHERE user_id = '$user_id'
+    SELECT 'Expense' AS type, amount, description, date FROM expenses WHERE user_id = ?
     ORDER BY date DESC
     LIMIT 5
 ");
+mysqli_stmt_bind_param($stmt, "ii", $user_id, $user_id);
+mysqli_stmt_execute($stmt);
+$recent_q = mysqli_stmt_get_result($stmt);
 ?>
+<?php include "header.php"; ?>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Dashboard</title>
+    <title>Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body { 
-            font-family:'Poppins', 
-            Arial; background:#eef2f7; 
-            margin:0; 
-            padding:0; 
-        }
-        .container { 
-            max-width: 1100px; 
-            margin: 40px auto; 
-            padding: 0 20px; 
-        }
-        .welcome { 
-            font-size: 28px; 
-            margin-bottom: 20px; 
-            font-weight: 600; 
-            color: #333; 
-        }
-        .stats { 
-            display: flex; 
-            gap: 25px; 
-            margin-bottom: 40px; 
-            flex-wrap: wrap; 
-        }
-        .card { 
-            flex:1; 
-            background:white; 
-            padding:25px; 
-            border-radius:14px; 
-            box-shadow:0 6px 18px rgba(0,0,0,0.08); 
-            transition:transform 0.2s; 
-        }
-        .card:hover { 
-            transform:translateY(-5px); 
-        }
-        .card h3 { 
-            margin:0 0 10px; 
-            font-weight:500; 
-            color:#555; 
-        }
-        .card p { 
-            font-size:22px; 
-            font-weight:700; 
-            color:#1a73e8; 
-        }
-        .actions { 
-            background:white; 
-            padding:25px; 
-            border-radius:14px; 
-            box-shadow:0 6px 18px rgba(0,0,0,0.08); 
-        }
-        .buttons a { 
-            display:inline-block; 
-            margin:10px 10px 0 0; 
-            padding:12px 22px; 
-            background:#1a73e8; 
-            color:white; 
-            border-radius:8px; 
-            text-decoration:none; 
-            font-weight:500; 
-            transition:0.2s; 
-        }
-        .buttons a:hover { 
-            background:#0f5ccc; 
-        }
-        .limit { 
-            margin:20px 0; 
-            padding:12px; 
-            background:#ffeded; 
-            border-left:6px solid #d32f2f; 
-            border-radius:8px; 
-            color:#b71c1c; 
-            font-weight:500; 
-        }
-        .section-title { 
-            margin: 30px 0 15px; 
-            padding: 15px 20px; 
-            background:white; 
-            border-radius:10px; 
-            color:#444; 
-            box-shadow:0 4px 12px rgba(0,0,0,0.05); 
-        }
-        .charts { 
-            display:flex; 
-            flex-wrap:wrap; 
-            gap:20px; 
-            margin:30px 0; 
-        }
-        .chart { 
-            flex:1; 
-            min-width:300px; 
-            background:white; 
-            padding:20px; 
-            border-radius:12px; 
-            box-shadow:0 6px 18px rgba(0,0,0,0.08); 
-        }
-
-        .chart-controls {
-            margin: 20px 0;
-            text-align: left;
-            background:white; 
-            padding:25px; 
-            border-radius:14px; 
-            box-shadow:0 6px 18px rgba(0,0,0,0.08); 
-        }
-
-        .chart-controls button {
-            padding: 10px 18px;
-            margin: 0 8px;
-            border: none;
-            border-radius: 8px;
-            background: #1a73e8;
-            color: white;
-            font-size: 16px;
-            cursor: pointer;
-        }
-
-        .chart-controls button:hover {
-            background: #0f5ccc;
-        }
-    </style>
+    <link rel="stylesheet" href="CSS/user_dashboard.css">
 </head>
 <body>
     <div class="container">
-        <div class="welcome">Welcome, <?php echo $_SESSION['name']; ?> 
-        <i class="fa-regular fa-face-laugh-beam" style="color: #1887dbff;"></i></div>
-
-        <h2 class="section-title">This Month — <?php echo date('F Y'); ?></h2>
-        <div class="stats">
-            <div class="card"><h3>Income</h3><p style="color:#2e7d32;">Rs. <?= number_format($total_income,2); ?></p></div>
-            <div class="card"><h3>Expenses</h3><p style="color:#c62828;">Rs. <?= number_format($total_expense,2); ?></p></div>
-            <div class="card"><h3>Balance</h3><p style="color:#1565c0;">Rs. <?= number_format($savings,2); ?></p></div>
+        <div class="welcome-section">
+            <h1>Welcome back, <?= htmlspecialchars($_SESSION['name']) ?></h1>
+            <p>Here's your financial overview for <?= date('F Y'); ?></p>
         </div>
 
-    <?php if($limit>0 && $total_expense>$limit): ?>
-        <div class="limit"><i class="fa-solid fa-triangle-exclamation"></i> Monthly expense limit exceeded! 
-        <br>Limit: Rs. <?= $limit; ?> | Spent: Rs. <?= $total_expense; ?></div>
-    <?php endif; ?>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon income">
+                    <i class="fa-solid fa-arrow-up"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>Income</h3>
+                    <p style="color: green;">Rs. <?= number_format($total_income, 2); ?></p>
+                </div>
+            </div>
 
-    <!-- Pie Chart -->
-    <div class="chart" style="margin-bottom:40px;">
-        <h3 style="text-align:center; margin-bottom:15px;">This Month — Income vs Expense</h3>
-        <canvas id="monthPieChart" style="max-width:350px; margin:0 auto; display:block;"></canvas>
-    </div>
+            <div class="stat-card">
+                <div class="stat-icon expense">
+                    <i class="fa-solid fa-arrow-down"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>Expenses</h3>
+                    <p style="color: red;">Rs. <?= number_format($total_expense, 2); ?></p>
+                </div>
+            </div>
 
-    <!-- Overall Summary -->
-    <h2 class="section-title">Overall Summary</h2>
-    <div class="stats">
-        <div class="card"><h3>Total Income</h3><p>Rs. <?= number_format($all_income,2); ?></p></div>
-        <div class="card"><h3>Total Expenses</h3><p>Rs. <?= number_format($all_expense,2); ?></p></div>
-        <div class="card"><h3>Net Savings</h3><p>Rs. <?= number_format($all_balance,2); ?></p></div>
-    </div>
+            <div class="stat-card">
+                <div class="stat-icon balance">
+                    <i class="fa-solid fa-wallet"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>Balance</h3>
+                    <p style="color: <?= $savings >= 0 ? 'green' : 'red' ?>;">
+                        Rs. <?= number_format($savings, 2); ?>
+                    </p>
+                </div>
+            </div>
+        </div>
 
-        <h2 class="section-title">Recent Transactions</h2>
-        <div class="actions">
-            <table style="width:100%; border-collapse:collapse;">
-                <tr style="background:#f1f4fb;">
-                    <th style="padding:10px; text-align:left;">Type</th>
-                    <th style="padding:10px; text-align:left;">Category</th>
-                    <th style="padding:10px;">Amount</th>
-                    <th style="padding:10px;">Date</th>
-                </tr>
+        <div class="insight-banner" style="background: <?= $insightColor ?>;">
+            <i class="fa-solid <?= $insightIcon ?>"></i>
+            <span><?= $insightMessage ?></span>
+        </div>
 
-                <?php
-                if (mysqli_num_rows($recent_q) > 0) {
-                    while ($row = mysqli_fetch_assoc($recent_q)) {
-                        $color = ($row['type'] == 'Income') ? '#2e7d32' : '#c62828';
-                        $sign  = ($row['type'] == 'Income') ? '+' : '-';
-                ?>
-                <tr>
-                    <td style="padding:10px; font-weight:600; color:<?php echo $color; ?>">
-                        <?php echo $row['type']; ?>
-                    </td>
-                    <td style="padding:10px;">
-                        <?php echo htmlspecialchars($row['description']); ?>
-                    </td>
-                    <td style="padding:10px; color:<?php echo $color; ?>; font-weight:600;">
-                        <?php echo $sign; ?> Rs. <?php echo number_format($row['amount'], 2); ?>
-                    </td>
-                    <td style="padding:10px;">
-                        <?php echo date("d M Y", strtotime($row['date'])); ?>
-                    </td>
-                </tr>
-                <?php
-                    }
-                } else {
-                    echo "<tr><td colspan='4' style='padding:15px; text-align:center;'>No recent transactions</td></tr>";
-                }
-                ?>
+        <?php if ($limit > 0 && $total_expense > $limit): ?>
+            <div class="alert-box">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                Monthly expense limit exceeded! Limit: Rs. <?= number_format($limit, 2); ?> | Spent: Rs. <?= number_format($total_expense, 2); ?>
+            </div>
+        <?php endif; ?>
+
+        <div class="chart-section">
+            <h3>
+                <i class="fa-solid fa-chart-pie"></i>
+                Expense Breakdown by Category - This Month
+            </h3>
+            <?php if (count($expense_categories) > 0): ?>
+                <canvas id="expenseChart"></canvas>
+            <?php else: ?>
+                <div class="empty-chart">
+                    <i class="fa-regular fa-chart-bar"></i>
+                    <p>No expense data available for this month</p>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <div class="section-header">
+            <h2>Overall Summary</h2>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon income">
+                    <i class="fa-solid fa-coins"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>Total Income</h3>
+                    <p style="color: green;">Rs. <?= number_format($all_income, 2); ?></p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon expense">
+                    <i class="fa-solid fa-credit-card"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>Total Expenses</h3>
+                    <p style="color: red;">Rs. <?= number_format($all_expense, 2); ?></p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon balance">
+                    <i class="fa-solid fa-piggy-bank"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>Net Savings</h3>
+                    <p style="color: <?= $all_balance >= 0 ? 'green' : 'red' ?>;">
+                        Rs. <?= number_format($all_balance, 2); ?>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-header">
+            <h2>Recent Transactions</h2>
+        </div>
+
+        <div class="content-box">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Category</th>
+                        <th>Amount</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (mysqli_num_rows($recent_q) > 0): 
+                        while ($row = mysqli_fetch_assoc($recent_q)):
+                            $color = ($row['type'] == 'Income') ? 'green' : 'red';
+                            $sign = ($row['type'] == 'Income') ? '+' : '-';
+                    ?>
+                    <tr>
+                        <td>
+                            <span style="font-weight: 600; color: <?= $color ?>;">
+                                <?= htmlspecialchars($row['type']) ?>
+                            </span>
+                        </td>
+                        <td><?= htmlspecialchars($row['description']) ?></td>
+                        <td>
+                            <span style="font-weight: 600; color: <?= $color ?>;">
+                                <?= $sign ?> Rs. <?= number_format($row['amount'], 2) ?>
+                            </span>
+                        </td>
+                        <td><?= date("d M Y", strtotime($row['date'])) ?></td>
+                    </tr>
+                    <?php endwhile; else: ?>
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: #5f6368; padding: 32px;">
+                            No recent transactions
+                        </td>
+                    </tr>
+                    <?php endif; ?>
+                </tbody>
             </table>
-
-            <div style="margin-top:15px; text-align:right;">
-                <a href="view_transactions.php" style="text-decoration:none; color:#1a73e8; font-weight:500;">  
-                    View all transactions
-                </a>
-            </div>
+            <a href="view_transactions.php" class="view-all-link">
+                View all transactions →
+            </a>
         </div>
 
-        <!-- Quick Actions -->
-        <h2 class="section-title">Quick Actions</h2>
-        <div class="actions">
-            <div class="buttons">
-                <a href="add_income.php"><i class="fa-solid fa-plus"></i> Add Income</a>
-                <a href="add_expense.php"><i class="fa-solid fa-minus"></i> Add Expense</a>
-                <a href="view_transactions.php"><i class="fa-regular fa-file"></i> View Transactions</a>
-                <a href="expense_limit.php"><i class="fa-solid fa-wallet"></i> Expense Limit</a>
-                <a href="view_reports.php"><i class="fa-solid fa-chart-line"></i> Reports</a>
-            </div>
+        <div class="section-header">
+            <h2>Quick Actions</h2>
+        </div>
+
+        <div class="action-grid">
+            <a href="add_income.php" class="action-card">
+                <div class="action-icon">
+                    <i class="fa-solid fa-plus"></i>
+                </div>
+                <div class="action-content">
+                    <h4>Add Income</h4>
+                    <p>Record earnings</p>
+                </div>
+            </a>
+
+            <a href="add_expense.php" class="action-card">
+                <div class="action-icon">
+                    <i class="fa-solid fa-minus"></i>
+                </div>
+                <div class="action-content">
+                    <h4>Add Expense</h4>
+                    <p>Track spending</p>
+                </div>
+            </a>
+
+            <a href="view_transactions.php" class="action-card">
+                <div class="action-icon">
+                    <i class="fa-solid fa-list"></i>
+                </div>
+                <div class="action-content">
+                    <h4>Transactions</h4>
+                    <p>View all activity</p>
+                </div>
+            </a>
+
+            <a href="expense_limit.php" class="action-card">
+                <div class="action-icon">
+                    <i class="fa-solid fa-gauge-high"></i>
+                </div>
+                <div class="action-content">
+                    <h4>Set Limits</h4>
+                    <p>Manage budgets</p>
+                </div>
+            </a>
+
+            <a href="view_reports.php" class="action-card">
+                <div class="action-icon">
+                    <i class="fa-solid fa-chart-line"></i>
+                </div>
+                <div class="action-content">
+                    <h4>Reports</h4>
+                    <p>Analyze data</p>
+                </div>
+            </a>
         </div>
     </div>
 
     <script>
-    new Chart(document.getElementById('monthPieChart'), {
-        type: 'pie',
-        data: {
-            labels: ['Income','Expense'],
-            datasets: [{
-                data: [<?= $total_income ?>, <?= $total_expense ?>],
-                backgroundColor: ['#2e7d32','#c62828']
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: { legend: { position: 'bottom' } }
-        }
-    });
+        <?php if (count($expense_categories) > 0): ?>
+        const ctx = document.getElementById('expenseChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: <?= json_encode($expense_categories) ?>,
+                datasets: [{
+                    data: <?= json_encode($expense_amounts) ?>,
+                    backgroundColor: <?= json_encode(array_slice($expense_colors, 0, count($expense_categories))) ?>,
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 16,
+                            font: {
+                                size: 13,
+                                family: "'Segoe UI', sans-serif"
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                label += 'Rs. ' + context.parsed.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        <?php endif; ?>
     </script>
 
     <?php include "footer.php"; ?>
