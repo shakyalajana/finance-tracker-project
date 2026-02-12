@@ -91,9 +91,15 @@ mysqli_stmt_close($stmt);
 
 // Recent transactions using prepared statement
 $stmt = mysqli_prepare($conn, "
-    SELECT 'Income' AS type, amount, description, date FROM income WHERE user_id = ?
+    SELECT 'Income' AS type, i.amount, c.name AS category_name, i.date 
+    FROM income i
+    LEFT JOIN categories c ON i.category_id = c.category_id
+    WHERE i.user_id = ?
     UNION ALL
-    SELECT 'Expense' AS type, amount, description, date FROM expenses WHERE user_id = ?
+    SELECT 'Expense' AS type, e.amount, c.name AS category_name, e.date 
+    FROM expenses e
+    LEFT JOIN categories c ON e.category_id = c.category_id
+    WHERE e.user_id = ?
     ORDER BY date DESC
     LIMIT 5
 ");
@@ -245,7 +251,7 @@ $recent_q = mysqli_stmt_get_result($stmt);
                                 <?= htmlspecialchars($row['type']) ?>
                             </span>
                         </td>
-                        <td><?= htmlspecialchars($row['description']) ?></td>
+                        <td><?= htmlspecialchars($row['category_name'] ?? 'Uncategorized') ?></td>
                         <td>
                             <span style="font-weight: 600; color: <?= $color ?>;">
                                 <?= $sign ?> Rs. <?= number_format($row['amount'], 2) ?>

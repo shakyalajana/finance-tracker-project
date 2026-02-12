@@ -26,7 +26,6 @@ $current_month_start = date('Y-m-01');
 $from_date = max($current_month_start, $user_created_at);
 $to_date = $today;
 
-
 // Handle date filtering with validation
 if (!empty($_GET['from_date']) && !empty($_GET['to_date'])) {
     $from_input = $_GET['from_date'];
@@ -39,22 +38,24 @@ if (!empty($_GET['from_date']) && !empty($_GET['to_date'])) {
     }
 }
 
-// Fetch income data using prepared statement
+// Fetch income data with JOIN to get category name
 $stmt = mysqli_prepare($conn, 
-    "SELECT id, amount, description, date 
-     FROM income 
-     WHERE user_id = ? AND date BETWEEN ? AND ? 
-     ORDER BY date DESC");
+    "SELECT i.id, i.amount, c.name as category_name, i.date, i.description
+     FROM income i
+     LEFT JOIN categories c ON i.category_id = c.category_id
+     WHERE i.user_id = ? AND i.date BETWEEN ? AND ? 
+     ORDER BY i.date DESC");
 mysqli_stmt_bind_param($stmt, "iss", $user_id, $from_date, $to_date);
 mysqli_stmt_execute($stmt);
 $income_data = mysqli_stmt_get_result($stmt);
 
-// Fetch expense data using prepared statement
+// Fetch expense data with JOIN to get category name
 $stmt2 = mysqli_prepare($conn, 
-    "SELECT id, amount, description, date 
-     FROM expenses 
-     WHERE user_id = ? AND date BETWEEN ? AND ? 
-     ORDER BY date DESC");
+    "SELECT e.id, e.amount, c.name as category_name, e.date, e.description
+     FROM expenses e
+     LEFT JOIN categories c ON e.category_id = c.category_id
+     WHERE e.user_id = ? AND e.date BETWEEN ? AND ? 
+     ORDER BY e.date DESC");
 mysqli_stmt_bind_param($stmt2, "iss", $user_id, $from_date, $to_date);
 mysqli_stmt_execute($stmt2);
 $expense_data = mysqli_stmt_get_result($stmt2);
@@ -452,7 +453,7 @@ while ($row = mysqli_fetch_assoc($expense_data)) {
                 <thead>
                     <tr>
                         <th>Date</th>
-                        <th>Source</th>
+                        <th>Category</th>
                         <th>Amount</th>
                         <th>Actions</th>
                     </tr>
@@ -462,7 +463,7 @@ while ($row = mysqli_fetch_assoc($expense_data)) {
                         <?php foreach ($income_array as $row): ?>
                         <tr>
                             <td><?= date('d M Y', strtotime($row['date'])) ?></td>
-                            <td><?= htmlspecialchars($row['description']) ?></td>
+                            <td><?= htmlspecialchars($row['category_name'] ?? 'Uncategorized') ?></td>
                             <td style="font-weight: 600; color: green;">
                                 + Rs. <?= number_format($row['amount'], 2) ?>
                             </td>
@@ -511,7 +512,7 @@ while ($row = mysqli_fetch_assoc($expense_data)) {
                         <?php foreach ($expense_array as $row): ?>
                         <tr>
                             <td><?= date('d M Y', strtotime($row['date'])) ?></td>
-                            <td><?= htmlspecialchars($row['description']) ?></td>
+                            <td><?= htmlspecialchars($row['category_name'] ?? 'Uncategorized') ?></td>
                             <td style="font-weight: 600; color: red;">
                                 - Rs. <?= number_format($row['amount'], 2) ?>
                             </td>

@@ -1,8 +1,6 @@
 <?php
 session_start();
 include "db.php";
-
-// Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit();
@@ -14,26 +12,24 @@ $success = '';
 
 if (isset($_POST['add_expense'])) {
     $amount = trim($_POST['amount']);
-    $description = trim($_POST['description']);
+    $category_id = trim($_POST['category_id']); // Changed from description to category_id
     $date = trim($_POST['date']);
     
     // Validation
-    if (empty($amount) || empty($description) || empty($date)) {
+    if (empty($amount) || empty($category_id) || empty($date)) {
         $error = "All fields are required.";
     } elseif (!is_numeric($amount) || $amount <= 0) {
         $error = "Please enter a valid positive amount.";
     } elseif (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
         $error = "Invalid date format.";
     } else {
-        // Use prepared statement to prevent SQL injection
-        $stmt = mysqli_prepare($conn, "INSERT INTO expenses (user_id, amount, description, date) VALUES (?, ?, ?, ?)");
-        
+        // Updated SQL to use category_id instead of description
+        $stmt = mysqli_prepare($conn, "INSERT INTO expenses (user_id, amount, category_id, date) VALUES (?, ?, ?, ?)");
         if ($stmt) {
-            mysqli_stmt_bind_param($stmt, "idss", $user_id, $amount, $description, $date);
-            
+            mysqli_stmt_bind_param($stmt, "idis", $user_id, $amount, $category_id, $date);
             if (mysqli_stmt_execute($stmt)) {
                 $success = "Expense added successfully!";
-                header("refresh:1;url=user_dashboard.php");
+                header("refresh:1; url=user_dashboard.php");
             } else {
                 $error = "Failed to add expense. Please try again.";
             }
@@ -125,8 +121,8 @@ if (isset($_POST['add_expense'])) {
         .form-group input:focus,
         .form-group select:focus {
             outline: none;
-            border-color: #c62828;
-            box-shadow: 0 0 0 3px rgba(198, 40, 40, 0.1);
+            border-color: #1a73e8;
+            box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
         }
 
         .form-group input[readonly] {
@@ -159,22 +155,22 @@ if (isset($_POST['add_expense'])) {
         .btn-primary {
             width: 100%;
             padding: 14px;
-            background: #c62828;
+            background: #1a73e8;
             border: none;
             color: white;
             font-size: 16px;
             font-weight: 500;
             border-radius: 8px;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: 0.2s;
         }
 
         .btn-primary:hover {
-            background: #b71c1c;
+            background: #1557b0;
         }
 
         .btn-primary:active {
-            background: #8b0000;
+            background: #0d47a1;
         }
 
         .back-link {
@@ -219,7 +215,7 @@ if (isset($_POST['add_expense'])) {
         $(function() {
             $("#datepicker").datepicker({
                 dateFormat: "yy-mm-dd",
-                maxDate: 0,
+                maxDate: 0, 
                 changeMonth: true,
                 changeYear: true
             });
@@ -230,8 +226,8 @@ if (isset($_POST['add_expense'])) {
     <div class="content">
         <div class="form-container">
             <div class="form-header">
-                <h2>Add Expense</h2>
-                <p>Track your spending</p>
+                <h2>Add expense</h2>
+                <p>Record your earnings</p>
             </div>
 
             <?php if ($error): ?>
@@ -258,14 +254,16 @@ if (isset($_POST['add_expense'])) {
                 </div>
 
                 <div class="form-group">
-                    <label for="description">Category</label>
-                    <select name="description" id="description" required>
+                    <label for="category_id">Category</label>
+                    <select name="category_id" id="category_id" required>
                         <option value="">Select a category</option>
                         <?php
-                        $cat = mysqli_query($conn, "SELECT * FROM categories WHERE type='expense' ORDER BY name");
+                        // Changed to fetch category_id and name
+                        $cat = mysqli_query($conn, "SELECT category_id, name FROM categories WHERE type='expense' ORDER BY name");
                         while ($row = mysqli_fetch_assoc($cat)) {
-                            $selected = (isset($_POST['description']) && $_POST['description'] == $row['name']) ? 'selected' : '';
-                            echo "<option value='" . htmlspecialchars($row['name']) . "' $selected>" . htmlspecialchars($row['name']) . "</option>";
+                            $selected = (isset($_POST['category_id']) && $_POST['category_id'] == $row['category_id']) ? 'selected' : '';
+                            // value is now category_id, display is name
+                            echo "<option value='" . $row['category_id'] . "' $selected>" . htmlspecialchars($row['name']) . "</option>";
                         }
                         ?>
                     </select>
@@ -280,7 +278,7 @@ if (isset($_POST['add_expense'])) {
                 </div>
 
                 <button type="submit" name="add_expense" class="btn-primary">
-                    <i class="fa-solid fa-minus"></i> Add Expense
+                    <i class="fa-solid fa-plus"></i> Add expense
                 </button>
             </form>
 
@@ -289,7 +287,6 @@ if (isset($_POST['add_expense'])) {
             </a>
         </div>
     </div>
-
     <?php include "footer.php"; ?>
 </body>
 </html>

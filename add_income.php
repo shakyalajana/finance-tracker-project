@@ -12,20 +12,21 @@ $success = '';
 
 if (isset($_POST['add_income'])) {
     $amount = trim($_POST['amount']);
-    $description = trim($_POST['description']);
+    $category_id = trim($_POST['category_id']); // Changed from description to category_id
     $date = trim($_POST['date']);
     
     // Validation
-    if (empty($amount) || empty($description) || empty($date)) {
+    if (empty($amount) || empty($category_id) || empty($date)) {
         $error = "All fields are required.";
     } elseif (!is_numeric($amount) || $amount <= 0) {
         $error = "Please enter a valid positive amount.";
     } elseif (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
         $error = "Invalid date format.";
     } else {
-        $stmt = mysqli_prepare($conn, "INSERT INTO income (user_id, amount, description, date) VALUES (?, ?, ?, ?)");
+        // Updated SQL to use category_id instead of description
+        $stmt = mysqli_prepare($conn, "INSERT INTO income (user_id, amount, category_id, date) VALUES (?, ?, ?, ?)");
         if ($stmt) {
-            mysqli_stmt_bind_param($stmt, "idss", $user_id, $amount, $description, $date);
+            mysqli_stmt_bind_param($stmt, "idis", $user_id, $amount, $category_id, $date);
             if (mysqli_stmt_execute($stmt)) {
                 $success = "Income added successfully!";
                 header("refresh:1; url=user_dashboard.php");
@@ -248,19 +249,21 @@ if (isset($_POST['add_income'])) {
                     <label for="amount">Amount (Rs.)</label>
                     <div class="input-icon">
                         <i class="fa-solid fa-rupee-sign"></i>
-                        <input type="number" id="amount"name="amount" placeholder="Enter income amount" step="0.01" min="0.01" requiredvalue="<?= isset($_POST['amount']) ? htmlspecialchars($_POST['amount']) : '' ?>">
+                        <input type="number" id="amount" name="amount" placeholder="Enter income amount" step="0.01" min="0.01" required value="<?= isset($_POST['amount']) ? htmlspecialchars($_POST['amount']) : '' ?>">
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="description">Category</label>
-                    <select name="description" id="description" required>
+                    <label for="category_id">Category</label>
+                    <select name="category_id" id="category_id" required>
                         <option value="">Select a category</option>
                         <?php
-                        $cat = mysqli_query($conn, "SELECT * FROM categories WHERE type='income' ORDER BY name");
+                        // Changed to fetch category_id and name
+                        $cat = mysqli_query($conn, "SELECT category_id, name FROM categories WHERE type='income' ORDER BY name");
                         while ($row = mysqli_fetch_assoc($cat)) {
-                            $selected = (isset($_POST['description']) && $_POST['description'] == $row['name']) ? 'selected' : '';
-                            echo "<option value='" . htmlspecialchars($row['name']) . "' $selected>" . htmlspecialchars($row['name']) . "</option>";
+                            $selected = (isset($_POST['category_id']) && $_POST['category_id'] == $row['category_id']) ? 'selected' : '';
+                            // value is now category_id, display is name
+                            echo "<option value='" . $row['category_id'] . "' $selected>" . htmlspecialchars($row['name']) . "</option>";
                         }
                         ?>
                     </select>
@@ -270,8 +273,7 @@ if (isset($_POST['add_income'])) {
                     <label for="datepicker">Date</label>
                     <div class="input-icon">
                         <i class="fa-regular fa-calendar"></i>
-                        <input type="text" id="datepicker" name="date" placeholder="YYYY-MM-DD" readonly required value="<?= isset($_POST['date']) ? htmlspecialchars($_POST['date']) : date('Y-m-d') ?>"
-                        >
+                        <input type="text" id="datepicker" name="date" placeholder="YYYY-MM-DD" readonly required value="<?= isset($_POST['date']) ? htmlspecialchars($_POST['date']) : date('Y-m-d') ?>">
                     </div>
                 </div>
 
