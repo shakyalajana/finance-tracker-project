@@ -26,8 +26,11 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
 
 $id = (int)$_GET['id'];
 
-// Fetch transaction data using prepared statement
-$stmt = mysqli_prepare($conn, "SELECT * FROM $table WHERE id = ? AND user_id = ?");
+// Fetch transaction data with category name using JOIN
+$stmt = mysqli_prepare($conn, "SELECT t.*, c.name as category_name, c.category_id 
+                                FROM $table t 
+                                LEFT JOIN categories c ON t.category_id = c.category_id 
+                                WHERE t.id = ? AND t.user_id = ?");
 mysqli_stmt_bind_param($stmt, "ii", $id, $user_id);
 mysqli_stmt_execute($stmt);
 $result = mysqli_stmt_get_result($stmt);
@@ -42,19 +45,21 @@ mysqli_stmt_close($stmt);
 // Handle form submission
 if (isset($_POST['update'])) {
     $amount = trim($_POST['amount']);
+    $category_id = trim($_POST['category_id']);
     $date = trim($_POST['date']);
+    $description = trim($_POST['description']);
     
     // Validation
-    if (empty($amount) || empty($date)) {
-        $error = "All fields are required.";
+    if (empty($amount) || empty($category_id) || empty($date)) {
+        $error = "Amount, category, and date are required.";
     } elseif (!is_numeric($amount) || $amount <= 0) {
         $error = "Please enter a valid positive amount.";
     } elseif (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
         $error = "Invalid date format.";
     } else {
         // Update using prepared statement
-        $stmt = mysqli_prepare($conn, "UPDATE $table SET amount = ?, date = ? WHERE id = ? AND user_id = ?");
-        mysqli_stmt_bind_param($stmt, "dsii", $amount, $date, $id, $user_id);
+        $stmt = mysqli_prepare($conn, "UPDATE $table SET amount = ?, category_id = ?, date = ?, description = ? WHERE id = ? AND user_id = ?");
+        mysqli_stmt_bind_param($stmt, "dissii", $amount, $category_id, $date, $description, $id, $user_id);
         
         if (mysqli_stmt_execute($stmt)) {
             $success = "Transaction updated successfully!";
@@ -155,7 +160,9 @@ if (isset($_POST['update'])) {
             color: #202124;
         }
 
-        .form-group input {
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
             width: 100%;
             padding: 12px 16px;
             border: 1px solid #dadce0;
@@ -166,7 +173,14 @@ if (isset($_POST['update'])) {
             box-sizing: border-box;
         }
 
-        .form-group input:focus {
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
             outline: none;
             border-color: #1a73e8;
             box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
@@ -267,7 +281,7 @@ if (isset($_POST['update'])) {
             </div>
 
             <div class="transaction-info">
-                <p><strong>Category:</strong> <?= htmlspecialchars($data['description']) ?></p>
+                <p><strong>Current Category:</strong> <?= htmlspecialchars($data['category_name'] ?? 'Uncategorized') ?></p>
                 <p><strong>Current Amount:</strong> Rs. <?= number_format($data['amount'], 2) ?></p>
                 <p><strong>Current Date:</strong> <?= date('d M Y', strtotime($data['date'])) ?></p>
             </div>
@@ -291,16 +305,36 @@ if (isset($_POST['update'])) {
                     <label for="amount">Amount (Rs.)</label>
                     <div class="input-icon">
                         <i class="fa-solid fa-rupee-sign"></i>
-                        <input type="number" id="amount" name="amount" value="<?= htmlspecialchars($data['amount']) ?>" step="0.01"min="0.01" required>
+                        <input type="number" id="amount" name="amount" value="<?= htmlspecialchars($data['amount']) ?>" step="0.01" min="0.01" required>
                     </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="category_id">Category</label>
+                    <select name="category_id" id="category_id" required>
+                        <option value="">Select a category</option>
+                        <?php
+                        $cat_type = ($type === 'income') ? 'income' : 'expense';
+                        $cat_query = mysqli_query($conn, "SELECT category_id, name FROM categories WHERE type='$cat_type' ORDER BY name");
+                        while ($cat_row = mysqli_fetch_assoc($cat_query)) {
+                            $selected = ($cat_row['category_id'] == $data['category_id']) ? 'selected' : '';
+                            echo "<option value='" . $cat_row['category_id'] . "' $selected>" . htmlspecialchars($cat_row['name']) . "</option>";
+                        }
+                        ?>
+                    </select>
                 </div>
 
                 <div class="form-group">
                     <label for="date">Date</label>
                     <div class="input-icon">
                         <i class="fa-regular fa-calendar"></i>
-                        <input type="date" id="date" name="date" value="<?= htmlspecialchars($data['date']) ?>"max="<?= date('Y-m-d') ?>" required>
+                        <input type="date" id="date" name="date" value="<?= htmlspecialchars($data['date']) ?>" max="<?= date('Y-m-d') ?>" required>
                     </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description (Optional)</label>
+                    <textarea name="description" id="description" rows="3" placeholder="Add additional notes (optional)"><?= htmlspecialchars($data['description'] ?? '') ?></textarea>
                 </div>
 
                 <div class="btn-group">

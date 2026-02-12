@@ -19,7 +19,7 @@
 
         .hero {
             min-height: 100vh;
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.95), rgba(118, 75, 162, 0.95)),
+            background: linear-gradient(135deg, rgba(22, 34, 63, 0.95), rgba(6, 182, 212, 0.95)),
                         url('https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=1920&q=80') center/cover;
             display: flex;
             flex-direction: column;
@@ -92,7 +92,7 @@
 
         .btn-solid {
             background: white;
-            color: #667eea;
+            color: #0ea5e9;
         }
 
         .btn-solid:hover {

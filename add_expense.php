@@ -12,8 +12,9 @@ $success = '';
 
 if (isset($_POST['add_expense'])) {
     $amount = trim($_POST['amount']);
-    $category_id = trim($_POST['category_id']); // Changed from description to category_id
+    $category_id = trim($_POST['category_id']);
     $date = trim($_POST['date']);
+    $description = trim($_POST['description']); 
     
     // Validation
     if (empty($amount) || empty($category_id) || empty($date)) {
@@ -23,10 +24,9 @@ if (isset($_POST['add_expense'])) {
     } elseif (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
         $error = "Invalid date format.";
     } else {
-        // Updated SQL to use category_id instead of description
-        $stmt = mysqli_prepare($conn, "INSERT INTO expenses (user_id, amount, category_id, date) VALUES (?, ?, ?, ?)");
+        $stmt = mysqli_prepare($conn, "INSERT INTO expenses (user_id, amount, category_id, date, description) VALUES (?, ?, ?, ?, ?)");
         if ($stmt) {
-            mysqli_stmt_bind_param($stmt, "idis", $user_id, $amount, $category_id, $date);
+            mysqli_stmt_bind_param($stmt, "idiss", $user_id, $amount, $category_id, $date, $description);
             if (mysqli_stmt_execute($stmt)) {
                 $success = "Expense added successfully!";
                 header("refresh:1; url=user_dashboard.php");
@@ -130,6 +130,24 @@ if (isset($_POST['add_expense'])) {
             cursor: pointer;
         }
 
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #dadce0;
+            border-radius: 8px;
+            font-size: 15px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+            box-sizing: border-box;
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #1a73e8;
+            box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
+        }
         .alert {
             padding: 12px 16px;
             border-radius: 8px;
@@ -277,6 +295,10 @@ if (isset($_POST['add_expense'])) {
                     </div>
                 </div>
 
+                <div class="form-group">
+                    <label for="description">Description (Optional)</label>
+                    <textarea name="description" id="description" rows="3" placeholder="Add additional notes (optional)" style="width: 100%; padding: 12px 16px; border: 1px solid #dadce0; border-radius: 8px; font-size: 15px; font-family: inherit; resize: vertical; box-sizing: border-box;"><?= isset($_POST['description']) ? htmlspecialchars($_POST['description']) : '' ?></textarea>
+                </div>
                 <button type="submit" name="add_expense" class="btn-primary">
                     <i class="fa-solid fa-plus"></i> Add expense
                 </button>

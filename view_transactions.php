@@ -455,6 +455,7 @@ while ($row = mysqli_fetch_assoc($expense_data)) {
                         <th>Date</th>
                         <th>Category</th>
                         <th>Amount</th>
+                        <th>Description</th> 
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -467,14 +468,15 @@ while ($row = mysqli_fetch_assoc($expense_data)) {
                             <td style="font-weight: 600; color: green;">
                                 + Rs. <?= number_format($row['amount'], 2) ?>
                             </td>
+                            <td><?= htmlspecialchars($row['description'] ?? '-') ?></td>
                             <td>
                                 <div class="action-links">
                                     <a href="edit_transaction.php?type=income&id=<?= $row['id'] ?>">
                                         <i class="fa-solid fa-pen-to-square"></i> Edit
                                     </a>
                                     <a href="delete_transaction.php?type=income&id=<?= $row['id'] ?>" 
-                                       class="delete"
-                                       onclick="return confirm('Are you sure you want to delete this income?')">
+                                    class="delete"
+                                    onclick="return confirm('Are you sure you want to delete this income?')">
                                         <i class="fa-solid fa-trash"></i> Delete
                                     </a>
                                 </div>
@@ -483,7 +485,7 @@ while ($row = mysqli_fetch_assoc($expense_data)) {
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="4" class="empty-state">
+                            <td colspan="5" class="empty-state"> 
                                 <i class="fa-regular fa-folder-open"></i>
                                 <p>No income records found</p>
                             </td>
@@ -504,6 +506,7 @@ while ($row = mysqli_fetch_assoc($expense_data)) {
                         <th>Date</th>
                         <th>Category</th>
                         <th>Amount</th>
+                        <th>Description</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -513,17 +516,18 @@ while ($row = mysqli_fetch_assoc($expense_data)) {
                         <tr>
                             <td><?= date('d M Y', strtotime($row['date'])) ?></td>
                             <td><?= htmlspecialchars($row['category_name'] ?? 'Uncategorized') ?></td>
-                            <td style="font-weight: 600; color: red;">
-                                - Rs. <?= number_format($row['amount'], 2) ?>
+                            <td style="font-weight: 600; color: green;">
+                                + Rs. <?= number_format($row['amount'], 2) ?>
                             </td>
+                            <td><?= htmlspecialchars($row['description'] ?? '-') ?></td> 
                             <td>
                                 <div class="action-links">
                                     <a href="edit_transaction.php?type=expense&id=<?= $row['id'] ?>">
                                         <i class="fa-solid fa-pen-to-square"></i> Edit
                                     </a>
                                     <a href="delete_transaction.php?type=expense&id=<?= $row['id'] ?>" 
-                                       class="delete"
-                                       onclick="return confirm('Are you sure you want to delete this expense?')">
+                                    class="delete"
+                                    onclick="return confirm('Are you sure you want to delete this expense?')">
                                         <i class="fa-solid fa-trash"></i> Delete
                                     </a>
                                 </div>
@@ -532,7 +536,7 @@ while ($row = mysqli_fetch_assoc($expense_data)) {
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="4" class="empty-state">
+                            <td colspan="5" class="empty-state">
                                 <i class="fa-regular fa-folder-open"></i>
                                 <p>No expense records found</p>
                             </td>

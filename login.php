@@ -56,7 +56,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             display: flex;
             justify-content: center;
             align-items: center;
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.75), rgba(118, 75, 162, 0.75)),
+            background: linear-gradient(135deg, rgba(22, 34, 63, 0.85), rgba(6, 182, 212, 0.75)),
                         url('https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=1920&q=80') center/cover;
             display: flex;
             padding: 20px;
@@ -79,7 +79,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         .logo {
             width: 60px;
             height: 60px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: linear-gradient(135deg, #28605a, #4da1bc);
             border-radius: 16px;
             display: flex;
             align-items: center;
@@ -151,7 +151,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         .btn {
             width: 100%;
             padding: 12px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #28605a, #4da1bc);
             border: none;
             color: white;
             font-size: 15px;
@@ -164,7 +164,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 8px 20px rgba(83, 168, 194, 0.4);
         }
 
         .link {
@@ -175,7 +175,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
 
         .link a {
-            color: #667eea;
+            color: #4da1bc;
             text-decoration: none;
             font-weight: 600;
         }
