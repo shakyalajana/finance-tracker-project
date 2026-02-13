@@ -74,7 +74,13 @@ $limit = $limit_row['limit_amount'] ?? 0;
 mysqli_stmt_close($stmt);
 
 // Get expense breakdown by category for chart
-$stmt = mysqli_prepare($conn, "SELECT description, SUM(amount) AS total FROM expenses WHERE user_id = ? AND MONTH(date) = ? AND YEAR(date) = ? GROUP BY description ORDER BY total DESC LIMIT 6");
+$stmt = mysqli_prepare($conn, 
+    "SELECT c.name as description, SUM(e.amount) AS total
+     FROM expenses e
+     LEFT JOIN categories c ON e.category_id = c.category_id
+     WHERE e.user_id = ? AND MONTH(e.date) = ? AND YEAR(e.date) = ?
+     GROUP BY c.name
+     ORDER BY total DESC");
 mysqli_stmt_bind_param($stmt, "iss", $user_id, $month, $year);
 mysqli_stmt_execute($stmt);
 $expense_breakdown = mysqli_stmt_get_result($stmt);

@@ -12,15 +12,25 @@ $current_year = date('Y');
 $current_month = date('m');
 
 // Income by category - Current Month
+// For income
 $stmt = mysqli_prepare($conn,
-    "SELECT description, SUM(amount) AS total
-     FROM income
-     WHERE user_id = ? AND MONTH(date) = ? AND YEAR(date) = ?
-     GROUP BY description
+    "SELECT COALESCE(c.name, i.description, 'Uncategorized') as description, SUM(i.amount) AS total
+     FROM income i
+     LEFT JOIN categories c ON i.category_id = c.category_id
+     WHERE i.user_id = ? AND MONTH(i.date) = ? AND YEAR(i.date) = ?
+     GROUP BY COALESCE(c.name, i.description)
      ORDER BY total DESC");
 mysqli_stmt_bind_param($stmt, "iss", $user_id, $current_month, $current_year);
 mysqli_stmt_execute($stmt);
 $income_result = mysqli_stmt_get_result($stmt);
+// For expenses
+$stmt = mysqli_prepare($conn,
+    "SELECT COALESCE(c.name, e.description, 'Uncategorized') as description, SUM(e.amount) AS total
+     FROM expenses e
+     LEFT JOIN categories c ON e.category_id = c.category_id
+     WHERE e.user_id = ? AND MONTH(e.date) = ? AND YEAR(e.date) = ?
+     GROUP BY COALESCE(c.name, e.description)
+     ORDER BY total DESC");;
 
 $income_labels = [];
 $income_data = [];
@@ -32,10 +42,11 @@ mysqli_stmt_close($stmt);
 
 // Expense by category - Current Month
 $stmt = mysqli_prepare($conn,
-    "SELECT description, SUM(amount) AS total
-     FROM expenses
-     WHERE user_id = ? AND MONTH(date) = ? AND YEAR(date) = ?
-     GROUP BY description
+    "SELECT c.name as description, SUM(e.amount) AS total
+     FROM expenses e
+     LEFT JOIN categories c ON e.category_id = c.category_id
+     WHERE e.user_id = ? AND MONTH(e.date) = ? AND YEAR(e.date) = ?
+     GROUP BY c.name
      ORDER BY total DESC");
 mysqli_stmt_bind_param($stmt, "iss", $user_id, $current_month, $current_year);
 mysqli_stmt_execute($stmt);
@@ -96,7 +107,7 @@ $top_expense_category = count($expense_labels) > 0 ? $expense_labels[0] : 'N/A';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reports - FinTrack</title>
+    <title>Reports</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
