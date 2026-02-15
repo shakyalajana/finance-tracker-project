@@ -9,6 +9,14 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 $error = '';
 $success = '';
+$user_query = mysqli_prepare($conn, "SELECT created_at FROM users WHERE user_id = ?");
+mysqli_stmt_bind_param($user_query, "i", $user_id);
+mysqli_stmt_execute($user_query);
+mysqli_stmt_bind_result($user_query, $user_created_at);
+mysqli_stmt_fetch($user_query);
+mysqli_stmt_close($user_query);
+
+$user_created_at = date('Y-m-d', strtotime($user_created_at));
 
 if (isset($_POST['add_income'])) {
     $amount = trim($_POST['amount']);
@@ -16,13 +24,14 @@ if (isset($_POST['add_income'])) {
     $date = trim($_POST['date']);
     $description = trim($_POST['description']); 
     
-    // Validation
     if (empty($amount) || empty($category_id) || empty($date)) {
         $error = "All fields are required.";
     } elseif (!is_numeric($amount) || $amount <= 0) {
         $error = "Please enter a valid positive amount.";
     } elseif (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
         $error = "Invalid date format.";
+    } elseif ($date < $user_created_at) {
+        $error = "You cannot select a date before your account was created.";
     } else {
         $stmt = mysqli_prepare($conn, "INSERT INTO income (user_id, amount, category_id, date, description) VALUES (?, ?, ?, ?, ?)");
         if ($stmt) {
@@ -231,9 +240,11 @@ if (isset($_POST['add_income'])) {
     <script src="https://code.jquery.com/ui/1.14.1/jquery-ui.js"></script>
     <script>
         $(function() {
+            var minDate = new Date("<?= $user_created_at ?>");
             $("#datepicker").datepicker({
                 dateFormat: "yy-mm-dd",
-                maxDate: 0, 
+                minDate: minDate,
+                maxDate: 0,
                 changeMonth: true,
                 changeYear: true
             });
@@ -276,11 +287,9 @@ if (isset($_POST['add_income'])) {
                     <select name="category_id" id="category_id" required>
                         <option value="">Select a category</option>
                         <?php
-                        // Changed to fetch category_id and name
                         $cat = mysqli_query($conn, "SELECT category_id, name FROM categories WHERE type='income' ORDER BY name");
                         while ($row = mysqli_fetch_assoc($cat)) {
                             $selected = (isset($_POST['category_id']) && $_POST['category_id'] == $row['category_id']) ? 'selected' : '';
-                            // value is now category_id, display is name
                             echo "<option value='" . $row['category_id'] . "' $selected>" . htmlspecialchars($row['name']) . "</option>";
                         }
                         ?>

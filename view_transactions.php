@@ -48,6 +48,7 @@ $stmt = mysqli_prepare($conn,
 mysqli_stmt_bind_param($stmt, "iss", $user_id, $from_date, $to_date);
 mysqli_stmt_execute($stmt);
 $income_data = mysqli_stmt_get_result($stmt);
+mysqli_stmt_close($stmt);
 
 // Fetch expense data with JOIN to get category name
 $stmt2 = mysqli_prepare($conn, 
@@ -59,6 +60,7 @@ $stmt2 = mysqli_prepare($conn,
 mysqli_stmt_bind_param($stmt2, "iss", $user_id, $from_date, $to_date);
 mysqli_stmt_execute($stmt2);
 $expense_data = mysqli_stmt_get_result($stmt2);
+mysqli_stmt_close($stmt2);
 
 // Calculate totals
 $total_income = 0;
@@ -83,7 +85,7 @@ while ($row = mysqli_fetch_assoc($expense_data)) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Transactions - FinTrack</title>
+    <title>Transactions</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
@@ -466,17 +468,16 @@ while ($row = mysqli_fetch_assoc($expense_data)) {
                             <td><?= date('d M Y', strtotime($row['date'])) ?></td>
                             <td><?= htmlspecialchars($row['category_name'] ?? 'Uncategorized') ?></td>
                             <td style="font-weight: 600; color: green;">
-                                + Rs. <?= number_format($row['amount'], 2) ?>
+                                &#43; Rs. <?= number_format($row['amount'], 2) ?>
                             </td>
-                            <td><?= htmlspecialchars($row['description'] ?? '-') ?></td>
+                            <td><?= htmlspecialchars(!empty($row['description']) ? $row['description'] : '-') ?></td>
                             <td>
                                 <div class="action-links">
                                     <a href="edit_transaction.php?type=income&id=<?= $row['id'] ?>">
                                         <i class="fa-solid fa-pen-to-square"></i> Edit
                                     </a>
-                                    <a href="delete_transaction.php?type=income&id=<?= $row['id'] ?>" 
-                                    class="delete"
-                                    onclick="return confirm('Are you sure you want to delete this income?')">
+                                    <a href="delete_transaction.php?type=income&id=<?= $row['id'] ?>" class="delete"
+                                    onclick="return confirm('Are you sure you want to delete this income?')" >
                                         <i class="fa-solid fa-trash"></i> Delete
                                     </a>
                                 </div>
@@ -516,10 +517,10 @@ while ($row = mysqli_fetch_assoc($expense_data)) {
                         <tr>
                             <td><?= date('d M Y', strtotime($row['date'])) ?></td>
                             <td><?= htmlspecialchars($row['category_name'] ?? 'Uncategorized') ?></td>
-                            <td style="font-weight: 600; color: green;">
-                                + Rs. <?= number_format($row['amount'], 2) ?>
+                            <td style="font-weight: 600; color: red;">
+                                &#45; Rs. <?= number_format($row['amount'], 2) ?>
                             </td>
-                            <td><?= htmlspecialchars($row['description'] ?? '-') ?></td> 
+                            <td><?= htmlspecialchars(!empty($row['description']) ? $row['description'] : '-') ?></td>
                             <td>
                                 <div class="action-links">
                                     <a href="edit_transaction.php?type=expense&id=<?= $row['id'] ?>">

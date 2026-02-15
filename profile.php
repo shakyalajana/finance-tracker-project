@@ -25,7 +25,6 @@ if (isset($_POST['change_password'])) {
     $new_password = $_POST['new_password'];
     $confirm_password = $_POST['confirm_password'];
     
-    // Fetch current password hash
     $stmt = mysqli_prepare($conn, "SELECT password FROM users WHERE user_id = ?");
     mysqli_stmt_bind_param($stmt, "i", $user_id);
     mysqli_stmt_execute($stmt);
@@ -33,20 +32,16 @@ if (isset($_POST['change_password'])) {
     $row = mysqli_fetch_assoc($result);
     mysqli_stmt_close($stmt);
     
-    // Verify current password
     if (!password_verify($current_password, $row['password'])) {
         $error_msg = "Current password is incorrect.";
     } 
-    // Check if new passwords match
     elseif ($new_password !== $confirm_password) {
         $error_msg = "New passwords do not match.";
     }
-    // Check password length
-    elseif (strlen($new_password) < 6) {
-        $error_msg = "New password must be at least 6 characters long.";
+    elseif (!preg_match('/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9]).{8,}$/', $new_password)) {
+        $error_msg = "Password must be at least 8 characters and include uppercase, lowercase, number and special character.";
     }
     else {
-        // Update password
         $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
         $stmt = mysqli_prepare($conn, "UPDATE users SET password = ? WHERE user_id = ?");
         mysqli_stmt_bind_param($stmt, "si", $hashed_password, $user_id);
@@ -65,7 +60,6 @@ if (isset($_POST['change_email'])) {
     $new_email = trim($_POST['new_email']);
     $password = $_POST['password_for_email'];
     
-    // Fetch current password hash
     $stmt = mysqli_prepare($conn, "SELECT password FROM users WHERE user_id = ?");
     mysqli_stmt_bind_param($stmt, "i", $user_id);
     mysqli_stmt_execute($stmt);
@@ -73,15 +67,12 @@ if (isset($_POST['change_email'])) {
     $row = mysqli_fetch_assoc($result);
     mysqli_stmt_close($stmt);
     
-    // Verify password
     if (!password_verify($password, $row['password'])) {
         $error_msg = "Password is incorrect.";
     }
-    // Validate email format
     elseif (!filter_var($new_email, FILTER_VALIDATE_EMAIL)) {
         $error_msg = "Invalid email format.";
     }
-    // Check if email already exists
     else {
         $stmt = mysqli_prepare($conn, "SELECT user_id FROM users WHERE email = ? AND user_id != ?");
         mysqli_stmt_bind_param($stmt, "si", $new_email, $user_id);
@@ -91,13 +82,12 @@ if (isset($_POST['change_email'])) {
         if (mysqli_num_rows($result) > 0) {
             $error_msg = "This email is already in use.";
         } else {
-            // Update email
             $stmt = mysqli_prepare($conn, "UPDATE users SET email = ? WHERE user_id = ?");
             mysqli_stmt_bind_param($stmt, "si", $new_email, $user_id);
             
             if (mysqli_stmt_execute($stmt)) {
                 $success_msg = "Email changed successfully!";
-                $user['email'] = $new_email; // Update display
+                $user['email'] = $new_email; 
             } else {
                 $error_msg = "Error updating email. Please try again.";
             }
@@ -111,7 +101,6 @@ if (isset($_POST['delete_account'])) {
     $password = $_POST['password_for_delete'];
     $confirmation = $_POST['delete_confirmation'];
     
-    // Fetch current password hash
     $stmt = mysqli_prepare($conn, "SELECT password FROM users WHERE user_id = ?");
     mysqli_stmt_bind_param($stmt, "i", $user_id);
     mysqli_stmt_execute($stmt);
@@ -119,16 +108,13 @@ if (isset($_POST['delete_account'])) {
     $row = mysqli_fetch_assoc($result);
     mysqli_stmt_close($stmt);
     
-    // Verify password
     if (!password_verify($password, $row['password'])) {
         $error_msg = "Password is incorrect.";
     }
-    // Check confirmation text
     elseif (strtoupper(trim($confirmation)) !== "DELETE") {
         $error_msg = "Please type DELETE to confirm account deletion.";
     }
     else {
-        // Delete user's transactions first
         $stmt = mysqli_prepare($conn, "DELETE FROM income WHERE user_id = ?");
         mysqli_stmt_bind_param($stmt, "i", $user_id);
         mysqli_stmt_execute($stmt);
@@ -139,13 +125,11 @@ if (isset($_POST['delete_account'])) {
         mysqli_stmt_execute($stmt);
         mysqli_stmt_close($stmt);
         
-        // Delete user account
         $stmt = mysqli_prepare($conn, "DELETE FROM users WHERE user_id = ?");
         mysqli_stmt_bind_param($stmt, "i", $user_id);
         
         if (mysqli_stmt_execute($stmt)) {
             mysqli_stmt_close($stmt);
-            // Destroy session
             session_destroy();
             header("Location: login.php?deleted=1");
             exit();
@@ -163,7 +147,7 @@ if (isset($_POST['delete_account'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Profile Settings - FinTrack</title>
+    <title>Profile Settings</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
@@ -456,8 +440,8 @@ if (isset($_POST['delete_account'])) {
                     <input type="password" id="current_password" name="current_password" required>
                 </div>
                 <div class="form-group">
-                    <label for="new_password">New Password (min. 6 characters)</label>
-                    <input type="password" id="new_password" name="new_password" minlength="6" required>
+                    <label for="new_password">New Password</label>
+                    <input type="password" id="new_password" name="new_password" minlength="8" required>
                 </div>
                 <div class="form-group">
                     <label for="confirm_password">Confirm New Password</label>

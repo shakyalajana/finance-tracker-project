@@ -8,10 +8,25 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $user_id = $_SESSION['user_id'];
-$current_year = date('Y');
-$current_month = date('m');
+$stmt = mysqli_prepare($conn, "SELECT created_at FROM users WHERE user_id = ?");
+mysqli_stmt_bind_param($stmt, "i", $user_id);
+mysqli_stmt_execute($stmt);
+mysqli_stmt_bind_result($stmt, $created_at);
+mysqli_stmt_fetch($stmt);
+mysqli_stmt_close($stmt);
 
-// Income by category - Current Month
+$created_timestamp = strtotime($created_at);
+$current_timestamp = time();
+
+if (isset($_GET['month_year'])) {
+    list($current_year, $current_month) = explode('-', $_GET['month_year']);
+    $current_year = (int)$current_year;
+    $current_month = (int)$current_month;
+} else {
+    $current_year = date('Y');
+    $current_month = date('m');
+}
+
 // For income
 $stmt = mysqli_prepare($conn,
     "SELECT COALESCE(c.name, i.description, 'Uncategorized') as description, SUM(i.amount) AS total
@@ -20,7 +35,7 @@ $stmt = mysqli_prepare($conn,
      WHERE i.user_id = ? AND MONTH(i.date) = ? AND YEAR(i.date) = ?
      GROUP BY COALESCE(c.name, i.description)
      ORDER BY total DESC");
-mysqli_stmt_bind_param($stmt, "iss", $user_id, $current_month, $current_year);
+mysqli_stmt_bind_param($stmt, "iii", $user_id, $current_month, $current_year);
 mysqli_stmt_execute($stmt);
 $income_result = mysqli_stmt_get_result($stmt);
 // For expenses
@@ -40,7 +55,6 @@ while ($row = mysqli_fetch_assoc($income_result)) {
 }
 mysqli_stmt_close($stmt);
 
-// Expense by category - Current Month
 $stmt = mysqli_prepare($conn,
     "SELECT c.name as description, SUM(e.amount) AS total
      FROM expenses e
@@ -48,7 +62,7 @@ $stmt = mysqli_prepare($conn,
      WHERE e.user_id = ? AND MONTH(e.date) = ? AND YEAR(e.date) = ?
      GROUP BY c.name
      ORDER BY total DESC");
-mysqli_stmt_bind_param($stmt, "iss", $user_id, $current_month, $current_year);
+mysqli_stmt_bind_param($stmt, "iii", $user_id, $current_month, $current_year);
 mysqli_stmt_execute($stmt);
 $expense_result = mysqli_stmt_get_result($stmt);
 
@@ -231,7 +245,6 @@ $top_expense_category = count($expense_labels) > 0 ? $expense_labels[0] : 'N/A';
             color: #667eea;
         }
 
-        /* Pie charts - smaller */
         .chart-container.pie canvas {
             display: block;
             margin: 0 auto;
@@ -239,14 +252,13 @@ $top_expense_category = count($expense_labels) > 0 ? $expense_labels[0] : 'N/A';
             max-height: 450px;
         }
 
-        /* Bar chart - MUCH BIGGER */
         .chart-container.bar {
             padding: 32px;
         }
 
         .chart-container.bar canvas {
             max-width: 100%;
-            height: 500px !important; /* Fixed height for larger chart */
+            height: 500px !important; 
         }
 
         .empty-state {
@@ -264,6 +276,78 @@ $top_expense_category = count($expense_labels) > 0 ? $expense_labels[0] : 'N/A';
         .empty-state p {
             margin: 0;
             font-size: 16px;
+        }
+
+        .filter-form {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #f9fafb;
+            padding: 8px 12px;
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .filter-form select {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+            font-size: 14px;
+        }
+
+        .filter-form select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102,126,234,0.15);
+        }
+
+        .filter-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            background: #667eea;
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .filter-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(102,126,234,0.3);
+        }
+
+        .report-header-card {
+            background: white;
+            padding: 24px 32px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e5e7eb;
+            margin-bottom: 24px;
+        }
+        
+        .report-header-card p {
+            margin: 6px 0 0;
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .report-header-card h2 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .report-header-card h2 i {
+            color: #667eea;
         }
 
         @media (max-width: 768px) {
@@ -292,15 +376,46 @@ $top_expense_category = count($expense_labels) > 0 ? $expense_labels[0] : 'N/A';
 <body>
     <div class="container">
         <div class="page-header">
-            <div>
-                <h2>Financial Reports</h2>
-                <p><?= date('F Y') ?></p>
+                <form method="GET" class="filter-form">
+                    <select name="month_year">
+                        <?php
+                        $selected_month_year = isset($_GET['month_year']) 
+                            ? $_GET['month_year'] 
+                            : date('Y-m');
+                        $start = strtotime(date('Y-m-01', $created_timestamp));
+                        $end = strtotime(date('Y-m-01'));
+
+                        while ($start <= $end) {
+                            $value = date('Y-m', $start);
+                            $label = date('F Y', $start);
+                            $selected = ($value == $selected_month_year) ? 'selected' : '';
+                            echo "<option value='$value' $selected>$label</option>";
+                            $start = strtotime("+1 month", $start);
+                        }
+                        ?>
+                    </select>
+
+                    <button type="submit" class="filter-btn">
+                        Generate
+                    </button>
+                </form>
+
+                <a href="user_dashboard.php" class="back-btn">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    Dashboard
+                </a>
             </div>
-            <a href="user_dashboard.php" class="back-btn">
-                <i class="fa-solid fa-arrow-left"></i>
-                Dashboard
-            </a>
-        </div>
+
+            <div class="report-header-card">
+                <h2>
+                    <i class="fa-solid fa-chart-line"></i>
+                    Financial Reports
+                </h2>
+                <p>
+                    <?= date('F Y', mktime(0,0,0,$current_month,1,$current_year)) ?>
+                </p>
+            </div>
+
 
         <div class="insights-grid">
             <div class="insight-card">
@@ -327,7 +442,7 @@ $top_expense_category = count($expense_labels) > 0 ? $expense_labels[0] : 'N/A';
         <div class="chart-container pie">
             <h3>
                 <i class="fa-solid fa-chart-pie"></i>
-                Income by Category - <?= date('F Y') ?>
+                Income by Category - <?= date('F Y', mktime(0,0,0,$current_month,1,$current_year)) ?>
             </h3>
             <?php if (count($income_labels) > 0): ?>
                 <canvas id="incomePie"></canvas>
@@ -342,7 +457,7 @@ $top_expense_category = count($expense_labels) > 0 ? $expense_labels[0] : 'N/A';
         <div class="chart-container pie">
             <h3>
                 <i class="fa-solid fa-chart-pie"></i>
-                Expenses by Category - <?= date('F Y') ?>
+                Expenses by Category - <?= date('F Y', mktime(0,0,0,$current_month,1,$current_year)) ?>
             </h3>
             <?php if (count($expense_labels) > 0): ?>
                 <canvas id="expensePie"></canvas>
@@ -467,7 +582,7 @@ $top_expense_category = count($expense_labels) > 0 ? $expense_labels[0] : 'N/A';
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false, // Important for fixed height
+                maintainAspectRatio: false, 
                 plugins: {
                     legend: {
                         position: 'top',

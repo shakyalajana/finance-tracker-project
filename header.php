@@ -100,7 +100,7 @@ if (session_status() === PHP_SESSION_NONE) {
     .user-avatar {
         width: 36px;
         height: 36px;
-        background: linear-gradient(135deg, #667eea, #764ba2);
+        background: linear-gradient(135deg, #667eea, #936bbb);
         border-radius: 50%;
         display: flex;
         align-items: center;
@@ -112,7 +112,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
     .user-name {
         font-weight: 500;
-        color: #202124;
+        color: #000000;
         font-size: 14px;
     }
 

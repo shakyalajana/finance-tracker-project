@@ -9,6 +9,14 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 $error = '';
 $success = '';
+$user_query = mysqli_prepare($conn, "SELECT created_at FROM users WHERE user_id = ?");
+mysqli_stmt_bind_param($user_query, "i", $user_id);
+mysqli_stmt_execute($user_query);
+mysqli_stmt_bind_result($user_query, $user_created_at);
+mysqli_stmt_fetch($user_query);
+mysqli_stmt_close($user_query);
+
+$user_created_at = date('Y-m-d', strtotime($user_created_at));
 
 if (isset($_POST['add_expense'])) {
     $amount = trim($_POST['amount']);
@@ -16,14 +24,16 @@ if (isset($_POST['add_expense'])) {
     $date = trim($_POST['date']);
     $description = trim($_POST['description']); 
     
-    // Validation
     if (empty($amount) || empty($category_id) || empty($date)) {
         $error = "All fields are required.";
     } elseif (!is_numeric($amount) || $amount <= 0) {
         $error = "Please enter a valid positive amount.";
     } elseif (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
         $error = "Invalid date format.";
-    } else {
+    } elseif ($date < $user_created_at) {
+        $error = "You cannot select a date before your account was created.";
+    }
+    else {
         $stmt = mysqli_prepare($conn, "INSERT INTO expenses (user_id, amount, category_id, date, description) VALUES (?, ?, ?, ?, ?)");
         if ($stmt) {
             mysqli_stmt_bind_param($stmt, "idiss", $user_id, $amount, $category_id, $date, $description);
@@ -231,9 +241,11 @@ if (isset($_POST['add_expense'])) {
     <script src="https://code.jquery.com/ui/1.14.1/jquery-ui.js"></script>
     <script>
         $(function() {
+            var minDate = new Date("<?= $user_created_at ?>");
             $("#datepicker").datepicker({
                 dateFormat: "yy-mm-dd",
-                maxDate: 0, 
+                minDate: minDate,
+                maxDate: 0,
                 changeMonth: true,
                 changeYear: true
             });
