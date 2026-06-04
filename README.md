@@ -1,5 +1,5 @@
 # 💰 Personal Finance Tracker
-A web-based personal finance tracking application developed as a 4th semester BCA project.
+A web-based personal finance tracking application built as part of a BCA academic project.
 
 ## 📋 About
 Personal Finance Tracker helps users manage their daily income and expenses. It allows users to record transactions, categorize spending, and get a clear overview of their financial activity.
